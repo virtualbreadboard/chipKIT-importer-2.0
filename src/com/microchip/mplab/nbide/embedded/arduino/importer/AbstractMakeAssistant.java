@@ -18,10 +18,8 @@ package com.microchip.mplab.nbide.embedded.arduino.importer;
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,8 +32,7 @@ public abstract class AbstractMakeAssistant {
 
     
     private static final Logger LOGGER = Logger.getLogger(AbstractMakeAssistant.class.getName());
-    
-    protected static final PathMatcher SOURCE_FILE_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.{c,cpp,S}");
+
     protected static final String TOOLS_DIR = "TOOLS_DIR";
 
     private List<String> compilationCommands;
@@ -194,36 +191,12 @@ public abstract class AbstractMakeAssistant {
     protected void invokeMakeTool( Consumer<String> messageConsumer, Consumer<String> errorConsumer ) throws IOException, InterruptedException {
         Path makeToolPath = getToolFinder().findTool( LanguageTool.MakeTool );
         NativeProcessRunner nativeProcessRunner = new NativeProcessRunner(messageConsumer, errorConsumer);
-        nativeProcessRunner.runNativeProcess( getBuildDirPath(), makeToolPath.toString(), "V=1", "-f", getMakefilePath().getFileName().toString() );
+        int result = nativeProcessRunner.runNativeProcess( getBuildDirPath(), makeToolPath.toString(), "V=1", "-f", getMakefilePath().getFileName().toString() );
+        if ( result != 0 ) throw new NativeProcessFailureException( "Compilation failed!" );
     }
         
     protected List<Path> getSourceFilePaths( BoardConfig config ) throws IOException {
-        Path variantPath = config.getVariantDirPath();
-        Path corePath = config.getCoreDirPath();
-        
-         // Find source files in variant directory:
-        List<Path> variantFilePaths = new ArrayList<>();                
-        if ( variantPath != null ) {
-            variantFilePaths = Files.list(variantPath)
-                .filter(filePath -> SOURCE_FILE_MATCHER.matches(filePath.getFileName()))
-                .collect( Collectors.toList() );
-        }
-        
-        // Create a list of source file names from the variant directory that will be used to filter core source files:
-        List <String> variantFileNames = variantFilePaths.stream().map( p -> p.getFileName().toString() ).collect( Collectors.toList() );
-        
-        // Find source files in core directory but only those that have not been overriden in the variant directory:
-        List <Path> coreFilePaths = Files.list(corePath)
-            .filter( p -> SOURCE_FILE_MATCHER.matches( p.getFileName()) )
-            .filter( p -> !variantFileNames.contains( p.getFileName().toString() ) )
-            .collect( Collectors.toList() );
-        
-        // Add variant and core source file paths:
-        List <Path> allSourceFiles = new ArrayList<>();
-        allSourceFiles.addAll( variantFilePaths );
-        allSourceFiles.addAll( coreFilePaths );
-        
-        return allSourceFiles;
+        return config.getCoreFilePaths();
     }
 
     protected List<String> parseCompilerMacros(String macros) {

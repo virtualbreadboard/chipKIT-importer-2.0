@@ -64,10 +64,7 @@ public class CopyingFileVisitor implements FileVisitor<Path> {
     }
 
     @Override
-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-        // before visiting entries in a directory we copy the directory
-        // (okay if directory already exists).
-
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {        
         // Skip directories that don't match the directory matcher
         if ( directoryMatcher != null && !directoryMatcher.matches(dir.getFileName()) ) {
             return SKIP_SUBTREE;
@@ -95,9 +92,19 @@ public class CopyingFileVisitor implements FileVisitor<Path> {
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-        // fix up modification time of directory when done
         if (exc == null) {
-            Path newdir = target.resolve(source.relativize(dir));            
+            // Remove the new directory if it turned out to be empty
+            Path newdir = target.resolve(source.relativize(dir));
+            try {            
+                if ( Files.list(newdir).count() == 0 ) {
+                    Files.delete(newdir);
+                    return CONTINUE;
+                }                                
+            } catch (IOException ex) {
+                LOGGER.log( Level.WARNING, "Unable to delete empty directory: " + newdir, ex );
+            }
+            
+            // Fix up modification time of directory when done
             try {
                 FileTime time = Files.getLastModifiedTime(dir);
                 Files.setLastModifiedTime(newdir, time);

@@ -196,6 +196,11 @@ public class ArduinoBuilderRunner {
                 }
             }
         });
+        
+        if ( libraryPaths.isEmpty() ) {
+            LOGGER.info("No main library dependencies found");
+        }
+        
         return libraryPaths;
     }
 
@@ -205,8 +210,7 @@ public class ArduinoBuilderRunner {
         // TODO: Consider expanding the list of valid library source file extensions
         final PathMatcher librarySourceMatcher = FileSystems.getDefault().getPathMatcher("glob:*.{c,cpp}");
         final Path gccPath = toolFinder.findTool( LanguageTool.CCCompiler );
-        final Path corePath = config.getCoreDirPath();
-        final Path variantPath = config.getVariantDirPath();
+        final List <Path> coreDirPaths = config.getCoreDirPaths();
         
         final List <Path> allLibraries = new ArrayList<>(mainLibraries);
         final List <Path> ret = new ArrayList<>();
@@ -251,7 +255,7 @@ public class ArduinoBuilderRunner {
                                     }
                                 }
                             }
-                        }).runNativeProcess( createDependencyResolutionCommand( gccPath, corePath, variantPath, mainLibraries, file ) );
+                        }).runNativeProcess( createDependencyResolutionCommand( gccPath, coreDirPaths, mainLibraries, file ) );
                     } catch ( IOException | InterruptedException ex ) {
                         LOGGER.log( Level.SEVERE, "Failed to resolve additional dependencies for " + file.toAbsolutePath().toString(), ex );
                     }
@@ -261,16 +265,20 @@ public class ArduinoBuilderRunner {
             });
         }
         
+        if ( ret.isEmpty() ) {
+            LOGGER.info("No additional library dependencies found");
+        }
+        
         return ret;
     }
     
-    private String[] createDependencyResolutionCommand( Path gccPath, Path corePath, Path variantPath, List<Path> libraryPaths, Path file ) {
+    private String[] createDependencyResolutionCommand( Path gccPath, List<Path> coreDirPaths, List<Path> libraryPaths, Path file ) {
         List <String> commandElements = new ArrayList<>();
         commandElements.add( gccPath.toString() );
-        commandElements.add( "-I" );
-        commandElements.add( corePath.toString() );
-        commandElements.add( "-I" );
-        commandElements.add( variantPath.toString() );
+        for ( Path coreDirPath : coreDirPaths ) {
+            commandElements.add( "-I" );
+            commandElements.add( coreDirPath.toString() );
+        }
         for ( Path libPath : libraryPaths ) {
             commandElements.add( "-I" );
             commandElements.add( libPath.toAbsolutePath().toString() );

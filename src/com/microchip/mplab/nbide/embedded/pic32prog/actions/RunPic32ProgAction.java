@@ -16,8 +16,8 @@
 package com.microchip.mplab.nbide.embedded.pic32prog.actions;
 
 import com.microchip.mplab.nbide.embedded.serialmonitor.SerialPortComboModel;
-import com.microchip.mplab.nbide.embedded.chipkit.importer.ChipKitProjectImporter;
-import com.microchip.mplab.nbide.embedded.chipkit.importer.NativeProcessRunner;
+import com.microchip.mplab.nbide.embedded.arduino.importer.NativeProcessRunner;
+import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.makeproject.HotProject;
 import com.microchip.mplab.nbide.embedded.makeproject.MakeActionProvider;
 import com.microchip.mplab.nbide.embedded.makeproject.MakeProject;
@@ -185,7 +185,7 @@ public final class RunPic32ProgAction extends AbstractAction implements Property
                 String selectedPortName = serialPortsCombo.getSelectedItem().toString();
 
                 String hexFileLocation = makeProject.getActiveConfiguration().getAbsoluteFinalLoadableFile();
-                FileObject chipKitConfFile = makeProject.getProjectDirectory().getFileObject("nbproject").getFileObject(ChipKitProjectImporter.CHIPKIT_PROPERTIES_FILENAME);
+                FileObject chipKitConfFile = makeProject.getProjectDirectory().getFileObject("nbproject").getFileObject(ProjectImporter.IMPORTED_PROPERTIES_FILENAME);
                 Properties chipKitProperties = new Properties();
                 chipKitProperties.load(chipKitConfFile.getInputStream());
 

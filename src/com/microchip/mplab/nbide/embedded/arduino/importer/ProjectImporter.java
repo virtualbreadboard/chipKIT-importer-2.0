@@ -16,7 +16,6 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
 
-import com.microchip.mplab.nbide.embedded.arduino.importer.chipkit.ChipKitBoardConfig;
 import com.microchip.mplab.nbide.embedded.arduino.utils.CopyingFileVisitor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -41,6 +40,12 @@ import java.util.stream.Stream;
 
 public class ProjectImporter {
 
+    
+    private static final Logger LOGGER = Logger.getLogger(ProjectImporter.class.getName());    
+    private static final String LIBRARY_EXAMPLES_DIR_NAME = "examples";
+    private static final String LIBRARY_TEST_DIR_NAME = "test";
+    
+    
     public static final String CORE_DIRECTORY_NAME = "imported-core";    
     public static final String LIBRARIES_DIRECTORY_NAME = "imported-libraries";
     public static final String SOURCE_FILES_DIRECTORY_NAME = "source";
@@ -51,18 +56,11 @@ public class ProjectImporter {
     public static final PathMatcher PROJECT_SOURCE_FILE_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.{c,C,cpp,CPP,s,S,H,h,X,x,INO,ino}");
     public static final PathMatcher LIBRARY_SOURCE_FILE_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.{c,C,cpp,CPP,s,S,H,h,X,x}");
     public static final PathMatcher LINKER_SCRIPT_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.ld");
-    public static final PathMatcher LIBRARY_DIR_MATCHER = new PathMatcher() {
-        @Override
-        public boolean matches(Path path) {
-            String filename = path.getFileName().toString();
-            return !filename.equals( LIBRARY_EXAMPLES_DIR_NAME ) && !filename.equals( LIBRARY_TEST_DIR_NAME );
-        }
+    public static final PathMatcher LIBRARY_DIR_MATCHER = (Path path) -> {
+        String filename = path.getFileName().toString();
+        return !filename.equals( LIBRARY_EXAMPLES_DIR_NAME ) && !filename.equals( LIBRARY_TEST_DIR_NAME );
     };
     
-    private static final Logger LOGGER = Logger.getLogger(ProjectImporter.class.getName());
-    
-    private static final String LIBRARY_EXAMPLES_DIR_NAME = "examples";
-    private static final String LIBRARY_TEST_DIR_NAME = "test";
     
     // R/W properties
     private boolean copyingFiles;

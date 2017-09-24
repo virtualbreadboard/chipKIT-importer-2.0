@@ -95,7 +95,7 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
         this.boardConfig = boardConfig;
         this.toolFinder = toolFinder;
         this.libCorePath = buildDirPath.resolve(LIB_CORE_FILENAME);
-        build();
+        build( messageConsumer, messageConsumer );
     }
     
     @Override

@@ -68,6 +68,8 @@ import org.openide.filesystems.FileUtil;
 import org.openide.modules.InstalledFileLocator;
 import org.openide.util.Exceptions;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.IMPORTED_PROPERTIES_FILENAME;
+import java.util.Arrays;
+import java.util.List;
 
 public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
 
@@ -186,7 +188,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         String makefileName = (String) wizardDescriptor.getProperty(WizardProperty.MAKE_FILENAME.key());
         String hostDir = projectDirectory.getAbsolutePath();
         MakeProject newProject = MakeProjectGenerator.createProject(projectDirectory, hostDir, projectName, makefileName, confs, null, null, null, true, null);
-        importChipKitProjectFiles(newProject);
+        importArduinoProjectFiles(newProject);
         setupProjectEncoding(newProject);
         newProject.save();
         return projectRootDirectories;
@@ -238,7 +240,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
     }
 
     //  TODO: Refactor this method. It is too long and contains too much business logic.
-    private void importChipKitProjectFiles(MakeProject newProject) throws IOException, InterruptedException {
+    private void importArduinoProjectFiles(MakeProject newProject) throws IOException, InterruptedException {
         MakeConfigurationBook newProjectDescriptor = MakeConfigurationBook.getMakeConfigurationDescriptor(newProject);
 
         boolean copyFiles = (boolean) wizardDescriptor.getProperty(COPY_CORE_FILES.key());
@@ -279,34 +281,34 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         
         BoardConfig boardConfig = importer.getBoardConfig();
 
-        // Create chipKit Core Logical Folder
-        Folder chipkitCoreFolder = newProjectDescriptor.getLogicalFolders().addNewFolder(ProjectImporter.CORE_DIRECTORY_NAME,
-            "chipKIT Core",
+        // Create Imported Core Logical Folder
+        Folder importedCoreFolder = newProjectDescriptor.getLogicalFolders().addNewFolder(ProjectImporter.CORE_DIRECTORY_NAME,
+            "Imported Core",
             false,
             Folder.Kind.SOURCE_LOGICAL_FOLDER
         );
         importer.getCoreFilePaths().forEach(
             p -> {
                 if (copyFiles) {
-                    addFileToFolder(chipkitCoreFolder, p, importer.getCoreDirectoryPath());
+                    addFileToFolder(importedCoreFolder, p, importer.getCoreDirectoryPath());
                 } else {
-                    addFileToFolder(chipkitCoreFolder, p, boardConfig.getCoreDirPath(), boardConfig.getVariantDirPath());
+                    addFileToFolder(importedCoreFolder, p, boardConfig.getCoreDirPath(), boardConfig.getVariantDirPath());
                 }
             }
         );
 
-        // Create chipKit Libraries Logical Folder
-        Folder chipkitLibrariesFolder = newProjectDescriptor.getLogicalFolders().addNewFolder(ProjectImporter.LIBRARIES_DIRECTORY_NAME,
-            "chipKIT Libraries",
+        // Create Imported Libraries Logical Folder
+        Folder importedLibrariesFolder = newProjectDescriptor.getLogicalFolders().addNewFolder(ProjectImporter.LIBRARIES_DIRECTORY_NAME,
+            "Imported Libraries",
             true,
             Folder.Kind.SOURCE_LOGICAL_FOLDER
         );
         if (copyFiles) {
-            importer.getMainLibraryFilePaths().forEach(p -> addFileToFolder(chipkitLibrariesFolder, p, importer.getLibraryDirectoryPath()));
+            importer.getMainLibraryFilePaths().forEach(p -> addFileToFolder(importedLibrariesFolder, p, importer.getLibraryDirectoryPath()));
         } else {
             Set<Path> libraryRootPaths = new HashSet<>();
             importer.getMainLibraryDirPaths().forEach(p -> libraryRootPaths.add(p.getParent()));
-            importer.getMainLibraryFilePaths().forEach(p -> addFileToFolder(chipkitLibrariesFolder, p, libraryRootPaths.toArray(new Path[libraryRootPaths.size()])));
+            importer.getMainLibraryFilePaths().forEach(p -> addFileToFolder(importedLibrariesFolder, p, libraryRootPaths.toArray(new Path[libraryRootPaths.size()])));
         }
 
         // Add source files
@@ -380,9 +382,11 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         if (copyFiles) {
             includesBuilder.append(ProjectImporter.CORE_DIRECTORY_NAME);
         } else {
-            includesBuilder.append(boardConfig.getCoreDirPath())
-                    .append(";")
-                    .append(boardConfig.getVariantDirPath());
+            List <Path> coreDirPaths = boardConfig.getCoreDirPaths();
+            for ( int i=0; i<coreDirPaths.size(); i++ ) {                
+                if ( i>0 ) includesBuilder.append(";");
+                includesBuilder.append( coreDirPaths.get(i) );
+            }
         }
         mainLibraryDirPaths.forEach(path -> {
             includesBuilder.append(";").append(copyFiles ? projectPath.relativize(path) : path.toAbsolutePath());
@@ -426,11 +430,15 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         
     }
 
-    private void addFileToFolder(Folder folder, Path filePath, Path... rootPaths) {
+    private void addFileToFolder(Folder folder, Path filePath, Path... rootPaths) {    
+        addFileToFolder( folder, filePath, Arrays.asList(rootPaths) );
+    }
+    
+    private void addFileToFolder(Folder folder, Path filePath, List<Path> rootPaths) {
         if ( filePath == null ) return;
         FileObject fileObject = FileUtil.toFileObject(filePath.toFile());
         Path projectRootPath = Paths.get( folder.getConfigurationDescriptor().getBaseDir() );
-        if (rootPaths != null && rootPaths.length > 0) {
+        if (rootPaths != null && rootPaths.size() > 0) {
             for (Path rootPath : rootPaths) {
                 if (!filePath.startsWith(rootPath)) {
                     continue;

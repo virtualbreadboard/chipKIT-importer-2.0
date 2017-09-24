@@ -16,18 +16,27 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
 
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 // Basic Arduino board configuration
 public class BoardConfig {
 
+    public static final PathMatcher SOURCE_FILE_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.{c,cpp,S}");
+    
     private final Map <String,String> data;
 
     public BoardConfig( Map <String,String> data ) {        
@@ -65,6 +74,42 @@ public class BoardConfig {
     
     public Path getCoreDirPath() {
         return Paths.get( data.get("build.core.path") );
+    }
+    
+    public List <Path> getCoreDirPaths() {
+        List <Path> ret = new ArrayList<>();
+        ret.add( getCoreDirPath() );
+        ret.add( getVariantDirPath() );
+        return ret;
+    }
+    
+    public List <Path> getCoreFilePaths() throws IOException {
+        Path variantPath = getVariantDirPath();
+        Path corePath = getCoreDirPath();
+        
+         // Find source files in variant directory:
+        List<Path> variantFilePaths = new ArrayList<>();                
+        if ( variantPath != null ) {
+            variantFilePaths = Files.list(variantPath)
+                .filter(filePath -> SOURCE_FILE_MATCHER.matches(filePath.getFileName()))
+                .collect( Collectors.toList() );
+        }
+        
+        // Create a list of source file names from the variant directory that will be used to filter core source files:
+        List <String> variantFileNames = variantFilePaths.stream().map( p -> p.getFileName().toString() ).collect( Collectors.toList() );
+        
+        // Find source files in core directory but only those that have not been overriden in the variant directory:
+        List <Path> coreFilePaths = Files.list(corePath)
+            .filter( p -> SOURCE_FILE_MATCHER.matches( p.getFileName()) )
+            .filter( p -> !variantFileNames.contains( p.getFileName().toString() ) )
+            .collect( Collectors.toList() );
+        
+        // Add variant and core source file paths:
+        List <Path> allCoreFilePaths = new ArrayList<>();
+        allCoreFilePaths.addAll( variantFilePaths );
+        allCoreFilePaths.addAll( coreFilePaths );
+        
+        return allCoreFilePaths;
     }
     
     public String getFullyQualifiedBoardName() {

@@ -68,7 +68,7 @@ public class NativeProcessRunner {
     
     public int runNativeProcess( Path workingDir, List <String> args ) throws IOException, InterruptedException {
         processBuilder = new ProcessBuilder( args )
-            .redirectError(ProcessBuilder.Redirect.PIPE)
+            .redirectError(ProcessBuilder.Redirect.INHERIT)
             .redirectErrorStream(true)
             .directory( workingDir != null ? workingDir.toFile() : null );
         
