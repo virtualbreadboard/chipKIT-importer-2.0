@@ -38,6 +38,7 @@ public class ProjectBuilder extends AbstractMakeAssistant {
     private Path buildDirPath;
     private Path projectDirPath;
     private BoardConfig boardConfig;
+    private List<Path> libraryPaths;
     private GCCToolFinder toolFinder;
     
 
@@ -70,29 +71,35 @@ public class ProjectBuilder extends AbstractMakeAssistant {
         return toolFinder;
     }
     
-    public void build(Path projectDirPath, Path buildDirPath, BoardConfig boardConfig, GCCToolFinder toolFinder, Consumer<String> messageConsumer, Consumer<String> errorConsumer) throws IOException, InterruptedException {
+    public void build(Path projectDirPath, Path buildDirPath, ProjectImporter importer, Consumer<String> messageConsumer, Consumer<String> errorConsumer) throws IOException, InterruptedException {
         this.projectDirPath = projectDirPath;
         this.buildDirPath = buildDirPath;
-        this.boardConfig = boardConfig;
-        this.toolFinder = toolFinder;
+        this.boardConfig = importer.getBoardConfig();
+        this.toolFinder = importer.getArduinoBuilderRunner().getToolFinder();
+        this.libraryPaths = Stream.concat(importer.getMainLibraryDirPaths(), importer.getAuxLibraryDirPaths()).collect( Collectors.toList() );
         build(messageConsumer, errorConsumer);
     }
 
     @Override
     protected void appendDependencies(StringBuilder command, BoardConfig config, Path sourceFilePath) {
         super.appendDependencies(command, config, sourceFilePath); 
-        String sourceDir = projectDirPath.resolve( ProjectImporter.SOURCE_FILES_DIRECTORY_NAME ).toString();
-        Path librariesDirPath = projectDirPath.resolve( LIBRARIES_DIRECTORY_NAME );
+        libraryPaths.forEach( dir ->  {
+            command.append(" -I\"").append(dir.toString()).append("\"");
+        });
         
-        if ( sourceFilePath.toString().startsWith( sourceDir ) ) {            
-            try {
-                Files.list(librariesDirPath).forEach( dir -> {
-                    command.append(" -I\"").append(dir.toString()).append("\"");
-                });
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
+        
+//        String sourceDir = projectDirPath.resolve( ProjectImporter.SOURCE_FILES_DIRECTORY_NAME ).toString();
+//        Path librariesDirPath = projectDirPath.resolve( LIBRARIES_DIRECTORY_NAME );
+//        
+//        if ( sourceFilePath.toString().startsWith( sourceDir ) ) {            
+//            try {
+//                Files.list(librariesDirPath).forEach( dir -> {
+//                    command.append(" -I\"").append(dir.toString()).append("\"");
+//                });
+//            } catch (IOException ex) {
+//                throw new RuntimeException(ex);
+//            }
+//        }
     }
 
     @Override
@@ -107,7 +114,6 @@ public class ProjectBuilder extends AbstractMakeAssistant {
             throw new RuntimeException(ex);
         }
         command.append( "\"" );
-        
     }
     
     @Override
@@ -129,6 +135,7 @@ public class ProjectBuilder extends AbstractMakeAssistant {
         Path sourceFileDir = projectDirPath.resolve( ProjectImporter.SOURCE_FILES_DIRECTORY_NAME );
         String sourceDirName = Files.exists( sourceFileDir ) ? sourceFileDir.getFileName().toString() : "sketch";
         
+        // TODO: The librariesDirPath will never be created in the no-copy import mode
         if ( Files.exists( librariesDirPath ) ) {
             return Stream.concat(
                 Files.list(librariesDirPath).flatMap( libDirPath -> {

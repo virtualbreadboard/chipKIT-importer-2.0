@@ -263,9 +263,12 @@ public class ProjectImporter {
             return Files.walk(coreDirPath).filter( p -> !Files.isDirectory(p) );
         } else {
             String deviceLinkerScriptFilename = config.getDeviceLinkerScriptFilename();
-            Path deviceLinkerScriptPath;
+            if ( deviceLinkerScriptFilename == null || deviceLinkerScriptFilename.isEmpty() ) {
+                return createSourceCoreFilesStream();
+            }
             
-            if ( Files.exists( sourceVariantDirPath.resolve( deviceLinkerScriptFilename ) ) ) {
+            Path deviceLinkerScriptPath;
+            if ( sourceVariantDirPath != null && Files.exists( sourceVariantDirPath.resolve( deviceLinkerScriptFilename ) ) ) {
                 deviceLinkerScriptPath = sourceVariantDirPath.resolve( deviceLinkerScriptFilename );
             } else {
                 deviceLinkerScriptPath = sourceCoreDirPath.resolve( deviceLinkerScriptFilename );
@@ -470,10 +473,11 @@ public class ProjectImporter {
     }                        
     
     private Stream createSourceCoreFilesStream() throws IOException {
+        String commonLinkerScriptFilename = config.getCommonLinkerScriptFilename();
         return Stream.concat(
             Stream.concat( Files.walk(sourceCoreDirPath), Files.walk(sourceVariantDirPath) )
                 .filter( p -> !Files.isDirectory(p) && PROJECT_SOURCE_FILE_MATCHER.matches(p.getFileName()) ),
-            Stream.of( sourceCoreDirPath.resolve( config.getCommonLinkerScriptFilename() ) )
+            commonLinkerScriptFilename != null ? Stream.of( sourceCoreDirPath.resolve( config.getCommonLinkerScriptFilename() ) ) : Stream.empty()
         );
     }
     

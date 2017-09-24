@@ -34,38 +34,36 @@ platforms:
 
 #    - SparkFun/SAMD:        
 #    - Arduino/SAMD:
-#    - Arduino/AVR:
-#        excludeBoards: 
-#            - yun
-#            - diecimila
-#            - nano
-#            - mega
-#            - megaADK
-#            - leonardo
-#            - leonardoeth
-#            - micro
-#            - esplora
-#            - mini
-#            - ethernet
-#            - fio
-#            - bt
-#            - LilyPadUSB
-#            - lilypad
-#            - pro
-#            - atmegang
-#            - robotControl
-#            - robotMotor
-#            - gemma
-#            - circuitplay32u4cat
-#            - yunmini
-#            - chiwawa
-#            - one
-#            - unowifi
+    - Arduino/AVR:
+        excludeBoards: 
+            - yun
+            - diecimila
+            - nano
+            - mega
+            - megaADK
+            - leonardo
+            - leonardoeth
+            - micro
+            - esplora
+            - mini
+            - ethernet
+            - fio
+            - bt
+            - LilyPadUSB
+            - lilypad
+            - pro
+            - atmegang
+            - robotControl
+            - robotMotor
+            - gemma
+            - circuitplay32u4cat
+            - yunmini
+            - chiwawa
+            - one
+            - unowifi
         
     - chipKIT/PIC32:
         excludeBoards: 
-            - cerebot32mx4
-            - cerebot32mx7
             - cerebot_mx3ck
             - chipkit_mx3
             - cerebot_mx3ck_512
@@ -108,10 +106,10 @@ platforms:
             - flipnclickmz
         includeProjectsFrom:
             - libraries/SPI/examples/BarometricPressureSensor/
-#            - libraries/Wire/examples/slave_sender/
+            - libraries/Wire/examples/slave_sender/
         
 # Paths to projects that should be imported by all boards from all the platforms specified above. The paths can either be relative or absolute.
 # If they are relative, they will be resolved against the default Arduino example direcotry (in Arduino installation directory).
 commonProjects:
-#    - 01.Basics/Blink
-#    - 01.Basics/AnalogReadSerial
+    - 01.Basics/Blink
+    - 01.Basics/AnalogReadSerial

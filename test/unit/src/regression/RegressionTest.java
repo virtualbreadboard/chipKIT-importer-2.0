@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import junit.framework.Assert;
@@ -24,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 
+// TODO: Consider running instances of this test in parallel but be careful about logging
 @RunWith(RegressionTestRunner.class)
 public class RegressionTest {
 
@@ -33,6 +35,7 @@ public class RegressionTest {
     
     private static final Logger LOGGER = Logger.getLogger( RegressionTest.class.getName() );
     
+    // TODO: The static log handler makes it impossible to run tests in parallel - consider refactoring
     private static FileHandler testRunFileLogHandler;
 
     private final Path arduinoInstallPath;
@@ -72,13 +75,17 @@ public class RegressionTest {
         }
         testRunFileLogHandler = new FileHandler( targetProjectPath.resolve("import.log").toString() );
         testRunFileLogHandler.setFilter(null);
-        Formatter logFormatter = new Formatter() {
+        testRunFileLogHandler.setFormatter( new Formatter() {
             @Override
             public String format(LogRecord record) {
-                return MessageFormat.format(record.getMessage(), record.getParameters())+"\n";
+                Object[] parameters = record.getParameters();
+                if ( parameters != null && parameters.length > 0 ) {
+                    return MessageFormat.format(record.getMessage(), parameters)+"\n";
+                } else {
+                    return record.getMessage()+"\n";
+                }
             }            
-        };
-        testRunFileLogHandler.setFormatter( logFormatter );
+        } );
         rootLogger.addHandler( testRunFileLogHandler );
     }
     
@@ -125,13 +132,12 @@ public class RegressionTest {
         b.build( 
             targetProjectPath,
             targetProjectPath.resolve( RELATIVE_MAIN_BUILD_DIRECTORY_PATH ), 
-            importer.getBoardConfig(), 
-            arduinoBuilderRunner.getToolFinder(), 
+            importer,
             LOGGER::info,
             LOGGER::severe
         );
         
-        LOGGER.info("Project Path: " + targetProjectPath);
+        LOGGER.log(Level.INFO, "Project Path: {0}", targetProjectPath);
         LOGGER.info("\nSource Files:");
         importer.getSourceFilePaths().forEach( p -> LOGGER.info(p.toString()) );
         LOGGER.info("\nCore Files:");
@@ -142,6 +148,7 @@ public class RegressionTest {
         importer.getAuxLibraryDirPaths().forEach( p -> LOGGER.info(p.toString()) );
         LOGGER.info("\nPreprocessing Command:");
         LOGGER.info( importer.getPreprocessingCommand() );
+        LOGGER.info("\n\nAll done\n\n");
     }
     
     @After
