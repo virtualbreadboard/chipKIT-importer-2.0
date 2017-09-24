@@ -1,7 +1,7 @@
 build
 nbproject/private
 drafts
-test
+test-area
 
 # Compiled class file
 *.class
@@ -10,7 +10,6 @@ test
 *.log
 
 # Package Files #
-*.jar
 *.war
 *.ear
 *.zip
