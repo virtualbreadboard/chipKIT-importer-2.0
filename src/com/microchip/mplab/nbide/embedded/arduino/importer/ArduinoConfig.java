@@ -21,12 +21,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openide.util.Utilities;
 
 public abstract class ArduinoConfig {
     
+    
+    public static final String ROOT_PLATFORM_VENDOR = "arduino";
+    public static final String ROOT_PLATFORM_ARCH = "avr";
     
     private static final Logger LOGGER = Logger.getLogger(ArduinoConfig.class.getName());
     private static ArduinoConfig INSTANCE;
@@ -67,6 +71,28 @@ public abstract class ArduinoConfig {
 
     public Path findHardwarePath(Path arduinoInstallPath) {
         return arduinoInstallPath.resolve("hardware");
+    }
+    
+    public Optional <String> findInPreferences( Predicate<String> predicate ) {
+        Path preferencesPath = getSettingsPath().resolve("preferences.txt");
+        try {
+            return Files.lines(preferencesPath)
+                .filter(line -> !line.trim().startsWith("#"))
+                .filter(predicate)
+                .findFirst()
+                .map(line -> {
+                    String[] tokens = line.split("=");
+                    return (tokens.length > 1) ? tokens[1].trim() : null;
+                });
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to read the preferences.txt file", ex);
+            return Optional.empty();
+        }
+    }
+    
+    public Optional <Path> getDefaultArduinoPlatformPath() {
+        return findInPreferences( line -> line.split("=")[0].trim().endsWith("hardwarepath") )
+            .map( hardwarePath -> Paths.get( hardwarePath, "arduino", "avr" ) );
     }
 
     public Path findToolsBuilderPath(Path arduinoInstallPath) {

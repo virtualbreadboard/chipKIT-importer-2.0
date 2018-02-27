@@ -67,7 +67,7 @@ public class ProgressTrackingStep implements WizardDescriptor.Panel<WizardDescri
                 }
             }
         });
-        importWorker.execute();                
+        importWorker.execute();
     }
 
     @Override

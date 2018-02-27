@@ -16,7 +16,6 @@
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
 
-import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
 import com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardProperty;
 import java.io.IOException;
@@ -37,15 +36,13 @@ import org.openide.util.NbBundle;
 
 public class ImportWizardIterator implements WizardDescriptor.InstantiatingIterator {
 
-    private final LanguageToolchain languageToolchain;
     private final ArduinoConfig arduinoConfig;
     private ImportWorker importWorker;
     private int index;
     private WizardDescriptor.Panel[] panels;
     private WizardDescriptor wiz;
 
-    public ImportWizardIterator( LanguageToolchain languageToolchain, ArduinoConfig arduinoConfig ) {
-        this.languageToolchain = languageToolchain;
+    public ImportWizardIterator( ArduinoConfig arduinoConfig ) {
         this.arduinoConfig = arduinoConfig;
     }
 
@@ -53,7 +50,7 @@ public class ImportWizardIterator implements WizardDescriptor.InstantiatingItera
     public void initialize( WizardDescriptor wd ) {
         this.wiz = wd;
         
-        importWorker = new ImportWorker(languageToolchain, wiz);
+        importWorker = new ImportWorker(wiz);
         
         wiz.putProperty(WizardProperty.APPLICATION_TYPE.key(), (Integer) TYPE_APPLICATION);
         wiz.setTitleFormat(new MessageFormat("{0}"));

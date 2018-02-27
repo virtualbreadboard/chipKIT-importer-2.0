@@ -18,6 +18,7 @@ package regression;
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.arduino.importer.*;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.LIBRARIES_DIRECTORY_NAME;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
@@ -37,7 +38,7 @@ public class ProjectBuilder extends AbstractMakeAssistant {
     
     private Path buildDirPath;
     private Path projectDirPath;
-    private BoardConfig boardConfig;
+    private Board board;
     private List<Path> libraryPaths;
     private GCCToolFinder toolFinder;
     
@@ -57,8 +58,8 @@ public class ProjectBuilder extends AbstractMakeAssistant {
     }
 
     @Override
-    public BoardConfig getBoardConfig() {
-        return boardConfig;
+    public Board getBoard() {
+        return board;
     }
     
     @Override
@@ -74,15 +75,15 @@ public class ProjectBuilder extends AbstractMakeAssistant {
     public void build(Path projectDirPath, Path buildDirPath, ProjectImporter importer, Consumer<String> messageConsumer, Consumer<String> errorConsumer) throws IOException, InterruptedException {
         this.projectDirPath = projectDirPath;
         this.buildDirPath = buildDirPath;
-        this.boardConfig = importer.getBoardConfig();
+        this.board = importer.getBoard();
         this.toolFinder = importer.getArduinoBuilderRunner().getToolFinder();
         this.libraryPaths = Stream.concat(importer.getMainLibraryDirPaths(), importer.getAuxLibraryDirPaths()).collect( Collectors.toList() );
         build(messageConsumer, errorConsumer);
     }
 
     @Override
-    protected void appendDependencies(StringBuilder command, BoardConfig config, Path sourceFilePath) {
-        super.appendDependencies(command, config, sourceFilePath); 
+    protected void appendDependencies(StringBuilder command, Board config) {
+        super.appendDependencies(command, config); 
         libraryPaths.forEach( dir ->  {
             command.append(" -I\"").append(dir.toString()).append("\"");
         });
@@ -130,7 +131,7 @@ public class ProjectBuilder extends AbstractMakeAssistant {
     }
 
     @Override
-    protected List<Path> getSourceFilePaths(BoardConfig config) throws IOException {
+    protected List<Path> getSourceFilePaths(Board board) throws IOException {
         Path librariesDirPath = projectDirPath.resolve( LIBRARIES_DIRECTORY_NAME );
         Path sourceFileDir = projectDirPath.resolve( ProjectImporter.SOURCE_FILES_DIRECTORY_NAME );
         String sourceDirName = Files.exists( sourceFileDir ) ? sourceFileDir.getFileName().toString() : "sketch";

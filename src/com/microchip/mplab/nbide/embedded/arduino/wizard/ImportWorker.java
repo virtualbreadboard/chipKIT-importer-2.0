@@ -17,32 +17,26 @@ package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
 import com.microchip.crownking.mplabinfo.DeviceSupport;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
+import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoBuilderRunner;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
-import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfig;
 import com.microchip.mplab.nbide.embedded.arduino.importer.BootloaderPathProvider;
 import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfigNavigator;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.arduino.importer.GCCToolFinder;
-import com.microchip.mplab.nbide.embedded.arduino.importer.LibCoreBuilder;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
-import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.ARDUINO_DIR;
-import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.BOARD_CONFIG_NAVIGATOR;
-import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.BOARD_ID;
-import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.COPY_CORE_FILES;
+import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.*;
+import static com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardProperty.*;
 import com.microchip.mplab.nbide.embedded.makeproject.MakeProject;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.Folder;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.Item;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.LoadableItem;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfiguration;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfigurationBook;
-import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.OptionConfiguration;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.StringConfiguration;
 import com.microchip.mplab.nbide.embedded.makeproject.api.remote.FilePathAdaptor;
 import com.microchip.mplab.nbide.embedded.makeproject.api.support.MakeProjectGenerator;
 import com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardProperty;
-import static com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardProperty.PROJECT_DIR;
-import static com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardProperty.SOURCE_PROJECT_DIR;
 import com.microchip.mplab.nbide.embedded.makeproject.ui.utils.PathPanel;
 import java.io.File;
 import java.io.IOException;
@@ -56,7 +50,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import org.netbeans.api.project.ProjectManager;
@@ -68,6 +61,9 @@ import org.openide.filesystems.FileUtil;
 import org.openide.modules.InstalledFileLocator;
 import org.openide.util.Exceptions;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.IMPORTED_PROPERTIES_FILENAME;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
+import com.microchip.mplab.nbide.embedded.arduino.wizard.avr.AVRProjectConfigurationImporter;
+import com.microchip.mplab.nbide.embedded.arduino.wizard.pic32.PIC32ProjectConfigurationImporter;
 import java.util.Arrays;
 import java.util.List;
 
@@ -78,15 +74,11 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
     private static final String DEFAULT_CONF_NAME = "default";
     private static final String DEBUG_CONF_NAME = "debug";
     
-    private static final String DEFAULT_OPTIMIZATION_OPTION = "-O1";
-    
     private Exception exception;
-    private final LanguageToolchain languageToolchain;
     private final WizardDescriptor wizardDescriptor;
     private volatile boolean multiConfigBoard;
 
-    public ImportWorker(LanguageToolchain languageToolchain, WizardDescriptor wizardDescriptor) {
-        this.languageToolchain = languageToolchain;
+    public ImportWorker(WizardDescriptor wizardDescriptor) {
         this.wizardDescriptor = wizardDescriptor;
     }
 
@@ -143,7 +135,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
 
         long t0 = System.currentTimeMillis();
         try {
-            resultSet.addAll(createProjectFromChipKit());
+            resultSet.addAll( createProject() );
         } catch (InterruptedException ex) {
             Exceptions.printStackTrace(ex);
         } finally {
@@ -170,7 +162,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         }
     }
 
-    private Set<FileObject> createProjectFromChipKit() throws IOException, InterruptedException {
+    private Set<FileObject> createProject() throws IOException, InterruptedException {
         Set<FileObject> projectRootDirectories = new HashSet<>(1);
         File projectDirectory = initProjectDirectoryFromWizard(projectRootDirectories);
         String boardId = (String) wizardDescriptor.getProperty(BOARD_ID.key());
@@ -232,6 +224,8 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         conf.getPlatformToolSN().setValue((String) wizardDescriptor.getProperty(WizardProperty.PLATFORM_TOOL_SERIAL.key()));
 
         // Toolchain
+        String languageToolchainID = (String) wizardDescriptor.getProperty( LANGUAGE_TOOL_META_ID.key() );
+        LanguageToolchain languageToolchain = LanguageToolchainManager.getDefault().getToolchainWithMetaID( languageToolchainID );
         conf.getLanguageToolchain().setMetaID(new StringConfiguration(null, languageToolchain.getMeta().getID()));
         conf.getLanguageToolchain().setDir(new StringConfiguration(null, languageToolchain.getDirectory()));
         conf.getLanguageToolchain().setVersion(new StringConfiguration(null, languageToolchain.getVersion()));
@@ -267,8 +261,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
 
         ProjectImporter importer = new ProjectImporter();
         importer.setCopyingFiles( copyFiles );
-        importer.setBoardConfigNavigator( boardConfigNavigator );
-        importer.setBoardId( boardId );
+//        importer.setBoardId( boardId );
         importer.setSourceProjectDirectoryPath( sourceProjectDir.toPath() );
         importer.setTargetProjectDirectoryPath( targetProjectDir.toPath() );
         importer.setArduinoBuilderRunner( arduinoBuilderRunner );
@@ -279,7 +272,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         // This will be used to display either the short "how-to" guide or the longer one:
         multiConfigBoard = importer.isCustomLdScriptBoard();
         
-        BoardConfig boardConfig = importer.getBoardConfig();
+        Board board = importer.getBoard();
 
         // Create Imported Core Logical Folder
         Folder importedCoreFolder = newProjectDescriptor.getLogicalFolders().addNewFolder(ProjectImporter.CORE_DIRECTORY_NAME,
@@ -290,9 +283,9 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         importer.getCoreFilePaths().forEach(
             p -> {
                 if (copyFiles) {
-                    addFileToFolder(importedCoreFolder, p, importer.getCoreDirectoryPath());
+                    addFileToFolder(importedCoreFolder, p, importer.getTargetCoreDirectoryPath());
                 } else {
-                    addFileToFolder(importedCoreFolder, p, boardConfig.getCoreDirPath(), boardConfig.getVariantDirPath());
+                    addFileToFolder(importedCoreFolder, p, board.getCoreDirectoryPath(), board.getVariantPath());
                 }
             }
         );
@@ -304,7 +297,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
             Folder.Kind.SOURCE_LOGICAL_FOLDER
         );
         if (copyFiles) {
-            importer.getMainLibraryFilePaths().forEach(p -> addFileToFolder(importedLibrariesFolder, p, importer.getLibraryDirectoryPath()));
+            importer.getMainLibraryFilePaths().forEach(p -> addFileToFolder(importedLibrariesFolder, p, importer.getTargetLibraryDirectoryPath()));
         } else {
             Set<Path> libraryRootPaths = new HashSet<>();
             importer.getMainLibraryDirPaths().forEach(p -> libraryRootPaths.add(p.getParent()));
@@ -315,7 +308,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         Folder sourceFolder = newProjectDescriptor.getLogicalFolders().findFolderByName(MakeConfigurationBook.SOURCE_FILES_FOLDER);
         if (copyFiles) {
             importer.getSourceFilePaths().forEach((p) -> {            
-                addFileToFolder(sourceFolder, p, importer.getSourceFilesDirectoryPath());
+                addFileToFolder(sourceFolder, p, importer.getTargetSourceFilesDirectoryPath());
             });
         }
 
@@ -370,64 +363,22 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         }
         
         // Set auxiliary configuration options
-        Set<String> cppAppendOptionsSet = boardConfig.getExtraOptionsCPP();
-        
-        boolean cppExceptions = !cppAppendOptionsSet.remove("-fno-exceptions");
-        
-        String cppAppendOptions = String.join(" ", cppAppendOptionsSet);
-
-        Path projectPath = Paths.get(targetProjectDir.getAbsolutePath());
-        Stream<Path> mainLibraryDirPaths = importer.getMainLibraryDirPaths();
-        StringBuilder includesBuilder = new StringBuilder();
-        if (copyFiles) {
-            includesBuilder.append(ProjectImporter.CORE_DIRECTORY_NAME);
+        if ( board.isAVR() ) {
+            new AVRProjectConfigurationImporter(importer, copyFiles, newProjectDescriptor, targetProjectDir).run();
+        } else if ( board.isPIC32() ) {
+            new PIC32ProjectConfigurationImporter(importer, copyFiles, newProjectDescriptor, targetProjectDir).run();
         } else {
-            List <Path> coreDirPaths = boardConfig.getCoreDirPaths();
-            for ( int i=0; i<coreDirPaths.size(); i++ ) {                
-                if ( i>0 ) includesBuilder.append(";");
-                includesBuilder.append( coreDirPaths.get(i) );
-            }
+            throw new IllegalStateException("There's no support for " + board.getArchitecture() + " devices!");
         }
-        mainLibraryDirPaths.forEach(path -> {
-            includesBuilder.append(";").append(copyFiles ? projectPath.relativize(path) : path.toAbsolutePath());
-            Path utilityPath = path.resolve("utility");
-            if ( Files.exists(utilityPath) ) {
-                includesBuilder.append(";").append(copyFiles ? projectPath.relativize(utilityPath) : utilityPath.toAbsolutePath());
-            }
-        });
-
-        
-        String preprocessorMacros = boardConfig.getCompilerMacros();
-        String ldOptions = String.join( " ", boardConfig.getExtraOptionsLD(false, copyFiles) );
-        String ldDebugOptions = String.join( " ", boardConfig.getExtraOptionsLD(true, copyFiles) );
-        String ldAppendOptions = "-L" + ProjectImporter.CORE_DIRECTORY_NAME + ",-l" + LibCoreBuilder.LIB_CORE_NAME;
-        String cAppendOptions = String.join(" ", boardConfig.getExtraOptionsC());
-        
-        newProjectDescriptor.getConfs().getConfigurtions().forEach( c-> {
-            MakeConfiguration mc = (MakeConfiguration) c;
-            setAuxOptionValue(mc, "C32Global", "common-include-directories", includesBuilder.toString());
-            setAuxOptionValue(mc, "C32Global", "legacy-libc", "false");
-            setAuxOptionValue(mc, "C32", "preprocessor-macros", preprocessorMacros);
-            setAuxOptionValue(mc, "C32", "optimization-level", DEFAULT_OPTIMIZATION_OPTION );
-            setAuxOptionValue(mc, "C32CPP", "preprocessor-macros", preprocessorMacros);
-            setAuxOptionValue(mc, "C32CPP", "optimization-level", DEFAULT_OPTIMIZATION_OPTION );
-            setAuxOptionValue(mc, "C32CPP", "exceptions", Boolean.toString(cppExceptions));
-            setAuxOptionValue(mc, "C32-LD", "oXC32ld-extra-opts", c.getName().equals(DEBUG_CONF_NAME) ? ldDebugOptions : ldOptions );
-            setAuxOptionValue(mc, "C32-LD", "remove-unused-sections", "true");
-            setAppendixValue(mc, "C32", cAppendOptions);
-            setAppendixValue(mc, "C32CPP", cppAppendOptions);
-            setAppendixValue(mc, "C32-LD", ldAppendOptions);
-        });
         
         // Create imported project properties file:
         Properties importedProjectProperties = new Properties();
-        importedProjectProperties.setProperty("platform-path", importer.getBoardConfigNavigator().getPlatformRootPath().toString());
-        importedProjectProperties.setProperty("programmer-path", importer.getBoardConfigNavigator().getProgrammerPath().toString());
+//        importedProjectProperties.setProperty("platform-path", importer.getBoardConfigNavigator().getPlatformRootPath().toString());
+        //importedProjectProperties.setProperty("programmer-path", importer.getBoardConfigNavigator().getProgrammerPath().toString());
         Path propsFilePath = Paths.get(newProjectDescriptor.getProjectDir(), "nbproject", IMPORTED_PROPERTIES_FILENAME );
         Files.createFile( propsFilePath );
         PrintWriter printWriter = new PrintWriter( propsFilePath.toFile() );
         importedProjectProperties.store( printWriter, null );
-        
     }
 
     private void addFileToFolder(Folder folder, Path filePath, Path... rootPaths) {    
@@ -479,18 +430,6 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         if (encoding != null && encoding instanceof Charset) {
             newProject.setSourceEncoding(((Charset) encoding).name());
         }
-    }
-
-    private void setAuxOptionValue(MakeConfiguration makeConf, String confItemId, String propertyKey, String propertyValue) {        
-        OptionConfiguration conf = (OptionConfiguration) makeConf.getAuxObject(confItemId);
-        conf.setProperty(propertyKey, propertyValue);
-        conf.markChanged();        
-    }
-
-    private void setAppendixValue(MakeConfiguration makeConf, String confItemId, String value) {        
-        OptionConfiguration conf = (OptionConfiguration) makeConf.getAuxObject(confItemId);
-        conf.setAppendix(value);
-        conf.markChanged();        
     }
 
 }

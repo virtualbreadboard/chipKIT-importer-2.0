@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -41,8 +42,8 @@ public class ArduinoBoardConfigNavigatorTest {
 
     @Test
     public void leonardo_should_have_atmega32u4_mcu() throws IOException  {
-        String mcu = configNavigator.parseMCU("leonardo");
-        Assert.assertEquals("MCU for Leonardo should be atmega32u4", "atmega32u4", mcu );
+        Optional<String> mcu = configNavigator.parseMCU("leonardo");
+        Assert.assertEquals("MCU for Leonardo should be atmega32u4", "atmega32u4", mcu.get() );
     }
 
     @Test

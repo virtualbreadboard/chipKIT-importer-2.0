@@ -3,12 +3,13 @@ package regression;
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoBuilderRunner;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
-import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfigNavigator;
 import com.microchip.mplab.nbide.embedded.arduino.importer.BootloaderPathProvider;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.arduino.importer.GCCToolFinder;
-import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.*;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Platform;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.PlatformFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,15 +44,17 @@ public class RegressionTest {
     private final String vendor;
     private final String architecture;
     private final String boardId;
+    private final String boardCpu;
     private final Path sourceProjectPath;
     private final Path targetProjectPath;
     
     
-    public RegressionTest( RegressionTestConfig config, String vendor, String architecture, String boardId, Path sourceProjectPath, Path targetProjectPath ) {
+    public RegressionTest( RegressionTestConfig config, String vendor, String architecture, String boardId, String boardCpu, Path sourceProjectPath, Path targetProjectPath ) {
         this.arduinoInstallPath = config.getArduinoInstallPath();        
         this.vendor = vendor;
         this.architecture = architecture;                
         this.boardId = boardId;
+        this.boardCpu = boardCpu;
         this.sourceProjectPath = sourceProjectPath;
         this.targetProjectPath = targetProjectPath;
         switch (architecture.toLowerCase()) {
@@ -104,8 +107,10 @@ public class RegressionTest {
         final GCCToolFinder toolFinder = new GCCToolFinder( toolchainPath );
         
         final ArduinoConfig arduinoConfig = ArduinoConfig.getInstance();
-        final Platform platform = BoardConfigNavigator.findPlatform( vendor, architecture, ArduinoConfig.getInstance().getSettingsPath() );
-        final BoardConfigNavigator boardConfigNavigator = new BoardConfigNavigator(platform);
+        final Platform platform = new PlatformFactory().createPlatform( ArduinoConfig.getInstance().getSettingsPath(), vendor, architecture );
+        final Board board = platform.getBoard(boardId);
+        board.setSelectedCpu(boardCpu);
+        
         final ArduinoBuilderRunner arduinoBuilderRunner = new ArduinoBuilderRunner(toolFinder, arduinoConfig, arduinoInstallPath, LOGGER::info );
                 
         Path classesPath = Paths.get( getClass().getResource("/").toURI() );
@@ -118,8 +123,7 @@ public class RegressionTest {
         // When
         ProjectImporter importer = new ProjectImporter();
         importer.setCopyingFiles( copyFiles );
-        importer.setBoardConfigNavigator( boardConfigNavigator );
-        importer.setBoardId( boardId );
+        importer.setBoard( board );
         importer.setSourceProjectDirectoryPath( sourceProjectPath );
         importer.setTargetProjectDirectoryPath( targetProjectPath );
         importer.setArduinoBuilderRunner( arduinoBuilderRunner );

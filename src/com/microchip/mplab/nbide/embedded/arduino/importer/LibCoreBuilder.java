@@ -16,10 +16,13 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 
@@ -31,8 +34,8 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
     
     private Path buildDirPath;
     private BoardConfig boardConfig;
+    private Board board;
     private GCCToolFinder toolFinder;
-
     private Path libCorePath;
     private String archiveCommand;
     
@@ -60,8 +63,8 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
     }
 
     @Override
-    public BoardConfig getBoardConfig() {
-        return boardConfig;
+    public Board getBoard() {
+        return board;
     }
     
     @Override
@@ -90,6 +93,15 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
         build(config, toolFinder, null);
     }
     
+    public void build(Board board, GCCToolFinder toolFinder, Consumer<String> messageConsumer) throws IOException, InterruptedException {
+        this.buildDirPath = Files.createTempDirectory("build");
+        this.board = board;
+        this.toolFinder = toolFinder;
+        this.libCorePath = buildDirPath.resolve(LIB_CORE_FILENAME);
+        build( messageConsumer, messageConsumer );
+    }
+    
+    // TODO: Remove
     public void build(BoardConfig boardConfig, GCCToolFinder toolFinder, Consumer<String> messageConsumer) throws IOException, InterruptedException {
         this.buildDirPath = Files.createTempDirectory("build");
         this.boardConfig = boardConfig;
@@ -101,19 +113,15 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
     @Override
     protected void generateMakefile() throws IOException {
         super.generateMakefile();
-        Path archiverPath = toolFinder.findTool( LanguageTool.Archiver );
         
         // Generate archiver command:
-        StringBuilder command = new StringBuilder("\t");
-        command.append("\"${").append(TOOLS_DIR).append("}").append("/").append(archiverPath.getFileName().toString()).append("\"");
-        command.append(" rcs");
-        command.append(" ");
-        command.append(LIB_CORE_FILENAME);
-        command.append(" ");
+        Map <String,String> auxData = new HashMap<>();
+        auxData.put( "runtime.tools.avr-gcc.path", getToolchainPath().toString() );
+        auxData.put( "archive_file_path", LIB_CORE_FILENAME );
         getObjectFilenames().forEach( n -> {
-            command.append('"').append(n).append('"').append(' ');
+            auxData.put("object_file", n);
+            getMakefileContents().add( "\t" + board.getValue("recipe.ar.pattern", auxData).get() );
         });
-        getMakefileContents().add( command.toString() );
     } 
     
     @Override

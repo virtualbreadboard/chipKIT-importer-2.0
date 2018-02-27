@@ -17,6 +17,7 @@ package com.microchip.mplab.nbide.embedded.arduino.importer.samd;
 
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfig;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -25,16 +26,14 @@ import java.util.Set;
 public class SAMDBoardConfig extends BoardConfig {
 
     /* 
-     * TODO:
-     *
-     * Add the following paths to included directories:
+     * TODO: Add the following paths to included directories:
      *      "/home/gregor/.arduino15/packages/arduino/tools/CMSIS/4.5.0/CMSIS/Include/" 
      *      "/home/gregor/.arduino15/packages/arduino/tools/CMSIS-Atmel/1.1.0/CMSIS/Device/ATMEL/"
      *
      */
 
-    public SAMDBoardConfig( Map <String,String> data ) {        
-        super( data );
+    public SAMDBoardConfig(  Platform platform, Map <String,String> data ) {        
+        super( platform, data );
     }
     
     @Override

@@ -36,80 +36,79 @@ platforms:
 #    - Arduino/SAMD:
     - Arduino/AVR:
         excludeBoards: 
-            - yun
-            - diecimila
-            - nano
-            - mega
-            - megaADK
-            - leonardo
-            - leonardoeth
-            - micro
-            - esplora
-            - mini
-            - ethernet
-            - fio
-            - bt
-            - LilyPadUSB
-            - lilypad
-            - pro
-            - atmegang
+#            - yun
+#            - mega
+#            - diecimila
+#            - nano
+#            - megaADK
+#            - leonardo
+#            - leonardoeth
+#            - micro
+#            - esplora
+#            - mini
+#            - ethernet
+#            - fio
+#            - bt
+#            - LilyPadUSB
+#            - lilypad
+#            - pro
+#            - atmegang
             - robotControl
             - robotMotor
-            - gemma
-            - circuitplay32u4cat
-            - yunmini
-            - chiwawa
-            - one
-            - unowifi
-        
-    - chipKIT/PIC32:
-        excludeBoards: 
-            - cerebot_mx3ck
-            - chipkit_mx3
-            - cerebot_mx3ck_512
-            - cerebot_mx4ck
-            - chipkit_pro_mx4
-            - cerebot_mx7ck
-            - chipkit_pro_mx7
-            - chipkit_Pi
-            - chipkit_Pi_USB_Serial
-            - cmod
-            - CUI32stem
-            - ubw32_mx460
-            - ubw32_mx795
-            - cui32
-            - chipkit_DP32
-            - fubarino_mini_dev
-            - fubarino_mini
-            - fubarino_mini_dbg
-            - fubarino_sd_seeed
-            - fubarino_sd
-            - Fubarino_SDZ
-            - mega_pic32
-            - mega_usb_pic32
-            - Olimex_Pinguino32
-            - picadillo_35t
-            - pontech_NoFire
-            - quick240_usb_pic32
-            - usbono_pic32
-            - uc32_pmod
-            - uno_pic32
-            - uno_pmod
-            - chipkit_WF32
-            - chipkit_WiFire
-            - chipkit_WiFire_AB
-            - chipkit_WiFire_80MHz
-            - OpenScope
-            - openbci
-            - lenny
-            - clicker2
-            - flipnclickmz
-        includeProjectsFrom:
-            - libraries/SPI/examples/BarometricPressureSensor/
-            - libraries/Wire/examples/slave_sender/
+#            - gemma
+#            - circuitplay32u4cat
+#            - yunmini
+#            - chiwawa
+#            - one
+#            - unowifi
+#    - chipKIT/PIC32:
+#        excludeBoards: 
+#            - cerebot_mx3ck
+#            - chipkit_mx3
+#            - cerebot_mx3ck_512
+#            - cerebot_mx4ck
+#            - chipkit_pro_mx4
+#            - cerebot_mx7ck
+#            - chipkit_pro_mx7
+#            - chipkit_Pi
+#            - chipkit_Pi_USB_Serial
+#            - cmod
+#            - CUI32stem
+#            - ubw32_mx460
+#            - ubw32_mx795
+#            - cui32
+#            - chipkit_DP32
+#            - fubarino_mini_dev
+#            - fubarino_mini
+#            - fubarino_mini_dbg
+#            - fubarino_sd_seeed
+#            - fubarino_sd
+#            - Fubarino_SDZ
+#            - mega_pic32
+#            - mega_usb_pic32
+#            - Olimex_Pinguino32
+#            - picadillo_35t
+#            - pontech_NoFire
+#            - quick240_usb_pic32
+#            - usbono_pic32
+#            - uc32_pmod
+#            - uno_pic32
+#            - uno_pmod
+#            - chipkit_WF32
+#            - chipkit_WiFire
+#            - chipkit_WiFire_AB
+#            - chipkit_WiFire_80MHz
+#            - OpenScope
+#            - openbci
+#            - lenny
+#            - clicker2
+#            - flipnclickmz
+#        includeProjectsFrom:
+#            - libraries/SPI/examples/BarometricPressureSensor/
+#            - libraries/Wire/examples/slave_sender/
         
 # Paths to projects that should be imported by all boards from all the platforms specified above. The paths can either be relative or absolute.
 # If they are relative, they will be resolved against the default Arduino example direcotry (in Arduino installation directory).
 commonProjects:
     - 01.Basics/Blink
-    - 01.Basics/AnalogReadSerial
+#    - 01.Basics/AnalogReadSerial

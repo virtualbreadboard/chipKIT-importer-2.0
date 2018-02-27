@@ -43,13 +43,13 @@ class ProgressTrackingPanel extends JPanel {
         setName( NbBundle.getMessage( ProgressTrackingPanel.class, "ProgressTrackingPanel.title" ) );
         setLayout( new GridBagLayout() );
         add( createImportInProgressPane(), new GridBagConstraints() );
+        setPreferredSize( new Dimension(662, 432) );
     }
     
     void onImportSuccess( boolean multiConfigBoard ) {
         showContents( createImportSuccessfulPane( multiConfigBoard ) );
     }
     
-    // TODO: Display exception
     void onImportFailed( Exception cause ) {
         showContents( createImportFailedPane( cause ) );
     }

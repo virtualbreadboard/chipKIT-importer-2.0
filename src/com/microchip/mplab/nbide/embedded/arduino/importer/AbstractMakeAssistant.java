@@ -16,13 +16,16 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,10 +59,14 @@ public abstract class AbstractMakeAssistant {
     public Path getMakefilePath() {
         return getBuildDirPath().resolve( getMakefileName() );
     }    
+    
+    public Path getToolchainPath() {
+        return getToolFinder().findTool( LanguageTool.CCCompiler ).getParent().getParent();
+    }
 
     public abstract Path getBuildDirPath();
 
-    public abstract BoardConfig getBoardConfig();
+    public abstract Board getBoard();
 
     public abstract String getMakefileName();
 
@@ -90,21 +97,23 @@ public abstract class AbstractMakeAssistant {
         if ( getBuildDirPath() == null ) throw new IllegalStateException("Build Directory Path cannot be null!");
         if ( getMakefileName() == null ) throw new IllegalStateException("Makefile Name cannot be null!");
         if ( getToolFinder() == null ) throw new IllegalStateException("Tool Finder cannot be null!");
-        if ( getBoardConfig() == null ) throw new IllegalStateException("Board Config cannot be null!");
+        if ( getBoard() == null ) throw new IllegalStateException("Board cannot be null!");
         if ( getTargetName() == null ) throw new IllegalStateException("Target Name cannot be null!");        
     }
     
     protected void generateMakefile() throws IOException {
-        BoardConfig config = getBoardConfig();
-        Path compilerPath = getToolFinder().findTool( LanguageTool.CCCompiler );
+        Board board = getBoard();
         
         makefileContents = new ArrayList<>();
         objectFilenames = new ArrayList<>();
-        makefileContents.add( TOOLS_DIR + "=" + compilerPath.getParent().toString() );
+//        makefileContents.add( TOOLS_DIR + "=" + compilerPath.getParent().toString() );
         makefileContents.add( getTargetName() + ":" );
         
         // Add variant and core source file paths:
-        List <Path> allSourceFiles = getSourceFilePaths(config);
+        List <Path> allSourceFiles = getSourceFilePaths(board);
+        
+        Map <String,String> auxData = new HashMap<>();
+        auxData.put( "runtime.tools.avr-gcc.path", getToolchainPath().toString() );
         
         // Generete compilation commands:
         allSourceFiles.forEach(sourceFilePath -> {                
@@ -112,17 +121,39 @@ public abstract class AbstractMakeAssistant {
             String targetFileName = sourceFileName + ".o";
             objectFilenames.add( targetFileName );
             StringBuilder command = new StringBuilder("\t");
+            
+            auxData.put("source_file", sourceFilePath.toString());
+            auxData.put("object_file", targetFileName);
+            auxData.put("includes", buildIncludesSection(board) );
+            
+            if (sourceFileName.endsWith(".S")) {
+                command.append( board.getValue("recipe.S.o.pattern", auxData).get() );
+            } else if (sourceFileName.endsWith(".c")) {
+                command.append( board.getValue("recipe.c.o.pattern", auxData).get() );
+            } else if (sourceFileName.endsWith(".cpp")) {
+                command.append( board.getValue("recipe.cpp.o.pattern", auxData).get() );
+            }
 
-            appendCompilerInvocation(command, compilerPath);
-            appendLanguageSpecificOptions(command, config, sourceFilePath);
-            appendProcessorOptions(command, config);
-            appendDependencies(command, config, sourceFilePath);
-            appendMacros(command, config);
-            appendSourceFilePath(command, sourceFilePath );
-            appendTargetFilePath(command, sourceFilePath.getParent().resolve(targetFileName) );
+//            appendCompilerInvocation(command, compilerPath);
+//            appendLanguageSpecificOptions(command, board, sourceFilePath);
+//            appendProcessorOptions(command, board);
+//            appendDependencies(command, board, sourceFilePath);
+//            appendMacros(command, board);
+            
             
             makefileContents.add( command.toString() );
         });                
+    }
+    
+    protected String buildIncludesSection( Board board ) {
+        StringBuilder ret = new StringBuilder();
+        Path variantPath = board.getVariantPath();
+        Path corePath = board.getCoreDirectoryPath();
+        if (variantPath != null && !variantPath.equals(corePath)) {
+            ret.append(" \"-I").append(variantPath).append("\"");
+        }
+        ret.append(" \"-I").append(corePath).append("\"");
+        return ret.toString();
     }
     
     protected void appendCompilerInvocation( StringBuilder command, Path compilerPath ) {
@@ -131,41 +162,41 @@ public abstract class AbstractMakeAssistant {
         command.append( " " );
     }
     
-    protected void appendLanguageSpecificOptions( StringBuilder command, BoardConfig config, Path sourceFilePath ) {
-        String sourceFileName = sourceFilePath.getFileName().toString();
-        if (sourceFileName.endsWith(".S")) {
-            command.append( String.join(" ", config.getExtraOptionsAS() ) );
-            command.append(" -O1");
-        } else if (sourceFileName.endsWith(".c")) {
-            command.append(" -g");
-            command.append(" -x");
-            command.append(" c");
-            command.append(" -w");
-            command.append(" -O1");
-            command.append( " " );
-            command.append( String.join(" ", config.getCompilerWarnings()) );
-            command.append( " " );
-            command.append( String.join(" ", config.getExtraOptionsC()) );
-        } else if (sourceFileName.endsWith(".cpp")) {
-            command.append(" -g");
-            command.append(" -x");
-            command.append(" c++");
-            command.append(" -w");
-            command.append(" -O1");
-            command.append( " " );
-            command.append( String.join(" ", config.getCompilerWarnings()) );
-            command.append( " " );
-            command.append( String.join( " ", config.getExtraOptionsCPP() ) );
-        }
-    }
+//    protected void appendLanguageSpecificOptions( StringBuilder command, Board config, Path sourceFilePath ) {
+//        String sourceFileName = sourceFilePath.getFileName().toString();
+//        if (sourceFileName.endsWith(".S")) {
+//            command.append( String.join(" ", config.getExtraOptionsAS() ) );
+//            command.append(" -O1");
+//        } else if (sourceFileName.endsWith(".c")) {
+//            command.append(" -g");
+//            command.append(" -x");
+//            command.append(" c");
+//            command.append(" -w");
+//            command.append(" -O1");
+//            command.append( " " );
+//            command.append( String.join(" ", config.getCompilerWarnings()) );
+//            command.append( " " );
+//            command.append( String.join(" ", config.getExtraOptionsC()) );
+//        } else if (sourceFileName.endsWith(".cpp")) {
+//            command.append(" -g");
+//            command.append(" -x");
+//            command.append(" c++");
+//            command.append(" -w");
+//            command.append(" -O1");
+//            command.append( " " );
+//            command.append( String.join(" ", config.getCompilerWarnings()) );
+//            command.append( " " );
+//            command.append( String.join( " ", config.getExtraOptionsCPP() ) );
+//        }
+//    }
     
     protected void appendProcessorOptions( StringBuilder command, BoardConfig config ) {
         command.append( String.join(" ", config.getProcessorOptions() ) );
     }
     
-    protected void appendDependencies( StringBuilder command, BoardConfig config, Path sourceFilePath ) {
-        Path variantPath = config.getVariantDirPath();
-        Path corePath = config.getCoreDirPath();
+    protected void appendDependencies( StringBuilder command, Board config ) {
+        Path variantPath = config.getVariantPath();
+        Path corePath = config.getCoreDirectoryPath();
         if (variantPath != null && !variantPath.equals(corePath)) {
             command.append(" -I\"").append(variantPath).append("\"");
         }
@@ -195,8 +226,8 @@ public abstract class AbstractMakeAssistant {
         if ( result != 0 ) throw new NativeProcessFailureException( "Compilation failed!" );
     }
         
-    protected List<Path> getSourceFilePaths( BoardConfig config ) throws IOException {
-        return config.getCoreFilePaths();
+    protected List<Path> getSourceFilePaths( Board board ) throws IOException {
+        return board.getCoreFilePaths();
     }
 
     protected List<String> parseCompilerMacros(String macros) {

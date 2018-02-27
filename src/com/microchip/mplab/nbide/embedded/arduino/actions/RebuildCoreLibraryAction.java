@@ -48,10 +48,10 @@ import org.openide.windows.InputOutput;
 
 @ActionID(
     category = "Project",
-    id = "com.microchip.mplab.nbide.embedded.chipkit.RebuildCoreLibraryAction"
+    id = "com.microchip.mplab.nbide.embedded.arduino.RebuildCoreLibraryAction"
 )
 @ActionRegistration(
-    iconBase = "com/microchip/mplab/nbide/embedded/chipkit/actions/arduino_16.png",        
+    iconBase = "com/microchip/mplab/nbide/embedded/arduino/actions/arduino_16.png",        
     displayName = "#CTL_RebuildCoreLibraryAction",
     lazy = false
 )
@@ -77,8 +77,8 @@ public class RebuildCoreLibraryAction extends AbstractAction implements ContextA
             putValue(NAME, NbBundle.getMessage(RebuildCoreLibraryAction.class, "CTL_RebuildCoreLibraryAction"));
             project = context.lookup(MakeProject.class);
             if ( project != null ) {
-                FileObject chipkitDir = project.getProjectDirectory().getFileObject( CORE_DIRECTORY_NAME );
-                setEnabled( chipkitDir != null );
+                FileObject importedCoreDir = project.getProjectDirectory().getFileObject( CORE_DIRECTORY_NAME );
+                setEnabled( importedCoreDir != null );
             } else {
                 setEnabled( false );
             }

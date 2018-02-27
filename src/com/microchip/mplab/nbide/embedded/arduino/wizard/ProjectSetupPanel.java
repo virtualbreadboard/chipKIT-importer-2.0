@@ -18,12 +18,6 @@ package com.microchip.mplab.nbide.embedded.arduino.wizard;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import java.awt.Component;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.IllegalCharsetNameException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -31,7 +25,6 @@ import javax.swing.JPanel;
 import javax.swing.ListCellRenderer;
 import javax.swing.plaf.UIResource;
 import org.openide.util.NbBundle;
-import org.openide.util.NbPreferences;
 
 class ProjectSetupPanel extends JPanel {
 
@@ -140,6 +133,12 @@ class ProjectSetupPanel extends JPanel {
         });
 
         org.openide.awt.Mnemonics.setLocalizedText(boardLabel, org.openide.util.NbBundle.getMessage(ProjectSetupPanel.class, "ProjectSetupPanel.boardLabel.text")); // NOI18N
+
+        boardCombo.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                boardComboItemStateChanged(evt);
+            }
+        });
 
         org.openide.awt.Mnemonics.setLocalizedText(projectNameLabel, org.openide.util.NbBundle.getMessage(ProjectSetupPanel.class, "ProjectSetupPanel.projectNameLabel.text")); // NOI18N
 
@@ -296,6 +295,10 @@ class ProjectSetupPanel extends JPanel {
     private void platformComboItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_platformComboItemStateChanged
         control.platformComboItemStateChanged(evt);
     }//GEN-LAST:event_platformComboItemStateChanged
+
+    private void boardComboItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_boardComboItemStateChanged
+        control.boardComboItemStateChanged(evt);
+    }//GEN-LAST:event_boardComboItemStateChanged
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     protected javax.swing.JTextField arduinoLocationField;

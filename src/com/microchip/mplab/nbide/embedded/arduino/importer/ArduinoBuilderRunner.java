@@ -18,6 +18,7 @@ package com.microchip.mplab.nbide.embedded.arduino.importer;
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.NativeProcessRunner.NO_ERROR_CODE;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -74,17 +75,17 @@ public class ArduinoBuilderRunner {
         return toolFinder;
     }
 
-    public void preprocess(BoardConfig config, Path inoFilePath) {
+    public void preprocess(Board board, Path inoFilePath) {
         Path tempDirPath = null;
         try {
             tempDirPath = Files.createTempDirectory("preprocess");
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-        preprocess(config, inoFilePath, tempDirPath);
+        preprocess(board, inoFilePath, tempDirPath);
     }
     
-    public void preprocess(BoardConfig config, Path inoFilePath, Path preprocessDirPath) {
+    public void preprocess(Board board, Path inoFilePath, Path preprocessDirPath) {
         try {
             this.preprocessDirPath = preprocessDirPath;
             if ( !Files.exists(preprocessDirPath) ) {
@@ -92,13 +93,13 @@ public class ArduinoBuilderRunner {
             }
             
             // Run Arduino-Builder
-            int errorCode = runArduinoBuilder(config, arduinoConfig, arduinoInstallPath, inoFilePath);
+            int errorCode = runArduinoBuilder(board, arduinoConfig, arduinoInstallPath, inoFilePath);
 
             if (errorCode == NO_ERROR_CODE) {
                 // Find library paths
                 mainLibraryPaths = findMainLibraryPaths();
                 // Find library dependencies
-                auxLibraryPaths = findAuxLibraryPaths(config, toolFinder, mainLibraryPaths);
+                auxLibraryPaths = findAuxLibraryPaths(board, toolFinder, mainLibraryPaths);
             } else {
                 String message = "Failed to preprocess file \"" + inoFilePath + "\". Check logs for details.";
                 LOGGER.log( Level.SEVERE, message );
@@ -142,9 +143,9 @@ public class ArduinoBuilderRunner {
         mainLibraryPaths = null;
     }
 
-    private int runArduinoBuilder( BoardConfig chipKitConfig, ArduinoConfig arduinoConfig, Path arduinoInstallPath, Path inoFilePath ) throws IOException, InterruptedException {
-        final String packagesPath = chipKitConfig.getPackagesRootPath().toString();
-        final String fqbn = chipKitConfig.getFullyQualifiedBoardName();
+    private int runArduinoBuilder( Board board, ArduinoConfig arduinoConfig, Path arduinoInstallPath, Path inoFilePath ) throws IOException, InterruptedException {
+        final String packagesPath = arduinoConfig.getPackagesPath().toString();
+        final String fqbn = board.getValue("fqbn").get();
         final Path librariesDirPath = findSketchbookLibrariesDirectoryPath(arduinoConfig, inoFilePath);        
         
         // Run preprocess command
@@ -204,13 +205,13 @@ public class ArduinoBuilderRunner {
         return libraryPaths;
     }
 
-    private List <Path> findAuxLibraryPaths(BoardConfig config, GCCToolFinder toolFinder, List<Path> mainLibraries) throws IOException {
+    private List <Path> findAuxLibraryPaths(Board board, GCCToolFinder toolFinder, List<Path> mainLibraries) throws IOException {
         LOGGER.info("Looking for additional library paths");
         
         // TODO: Consider expanding the list of valid library source file extensions
         final PathMatcher librarySourceMatcher = FileSystems.getDefault().getPathMatcher("glob:*.{c,cpp}");
         final Path gccPath = toolFinder.findTool( LanguageTool.CCCompiler );
-        final List <Path> coreDirPaths = config.getCoreDirPaths();
+        final List <Path> coreDirPaths = board.getCoreDirPaths();
         
         final List <Path> allLibraries = new ArrayList<>(mainLibraries);
         final List <Path> ret = new ArrayList<>();

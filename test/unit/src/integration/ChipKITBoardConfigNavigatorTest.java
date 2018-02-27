@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -40,8 +41,8 @@ public class ChipKITBoardConfigNavigatorTest {
     
     @Test
     public void cerebot32mx4_should_have_32MX460F512L_mcu() throws IOException  {
-        String mcu = configNavigator.parseMCU("cerebot32mx4");            
-        Assert.assertEquals("MCU should be 32MX460F512L", "32MX460F512L", mcu );
+        Optional<String> mcu = configNavigator.parseMCU("cerebot32mx4");            
+        Assert.assertEquals("MCU should be 32MX460F512L", "32MX460F512L", mcu.get() );
     }
     
     @Test

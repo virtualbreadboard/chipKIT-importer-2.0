@@ -1,7 +1,7 @@
 package regression;
 
-import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfigNavigator;
-import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Platform;
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.PlatformFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,9 +80,9 @@ public class RegressionTestConfig {
             String[] vendorArchitecturePair = entry.getKey().toString().split("/");
 
             try {
-                Platform platform = BoardConfigNavigator.findPlatform(vendorArchitecturePair[0], vendorArchitecturePair[1], userSettingsPath);
+                Platform platform = new PlatformFactory().createPlatform(userSettingsPath, vendorArchitecturePair[0], vendorArchitecturePair[1]);
                 platformTestConfig.platform = platform;
-                platformTestConfig.boardIDs.addAll(new BoardConfigNavigator(platform).parseBoardIDs());
+                platformTestConfig.boardIDs.addAll( platform.getBoardIDs() );
             } catch (IOException ex) {
                 ex.printStackTrace();
                 Assert.fail("Failed to find platform for " + entry.getKey());

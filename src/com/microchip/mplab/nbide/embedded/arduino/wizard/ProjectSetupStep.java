@@ -15,11 +15,15 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
+import com.microchip.crownking.mplabinfo.DeviceSupport;
+import com.microchip.crownking.mplabinfo.DeviceSupportException;
 import com.microchip.crownking.opt.Version;
 import com.microchip.mplab.mdbcore.MessageMediator.ActionList;
 import com.microchip.mplab.mdbcore.MessageMediator.DialogBoxType;
 import com.microchip.mplab.mdbcore.MessageMediator.Message;
 import com.microchip.mplab.mdbcore.MessageMediator.MessageMediator;
+import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
+import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
 import com.microchip.mplab.nbide.embedded.api.ui.TypeAheadComboBox;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
 import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfigNavigator;
@@ -64,10 +68,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultComboBoxModel;
@@ -75,6 +81,8 @@ import javax.swing.JComboBox;
 import javax.swing.filechooser.FileFilter;
 import org.openide.util.Exceptions;
 
+
+// TODO: Introduce more Optional return types
 public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor> {
 
     
@@ -88,6 +96,8 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private BoardConfigNavigator boardConfigNavigator;
     private WizardDescriptor wizardDescriptor;
     private ProjectSetupPanel view;
+    private String deviceName;
+    private LanguageToolchain languageToolchain;
 
     public ProjectSetupStep( ArduinoConfig arduinoConfig ) {
         this.arduinoConfig = arduinoConfig;
@@ -138,12 +148,17 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         }
         
         if (!isPlatformDirectoryValid()) {
-            wizardDescriptor.putProperty(WizardDescriptor.PROP_ERROR_MESSAGE, NbBundle.getMessage(ProjectSetupPanel.class, "MSG_IllegalChipKitDirectory"));
+            wizardDescriptor.putProperty(WizardDescriptor.PROP_ERROR_MESSAGE, NbBundle.getMessage(ProjectSetupPanel.class, "MSG_IllegalPlatformDirectory"));
             return false;
         }
         
         if (!isBoardValid()) {
-            wizardDescriptor.putProperty(WizardDescriptor.PROP_ERROR_MESSAGE, NbBundle.getMessage(ProjectSetupPanel.class, "MSG_UnknownChipKitBoard"));
+            wizardDescriptor.putProperty(WizardDescriptor.PROP_ERROR_MESSAGE, NbBundle.getMessage(ProjectSetupPanel.class, "MSG_UnknownArduinoBoard"));
+            return false;
+        }
+        
+        if (!isToolchainValid()) {
+            wizardDescriptor.putProperty(WizardDescriptor.PROP_ERROR_MESSAGE, NbBundle.getMessage(ProjectSetupPanel.class, "MSG_NoMatchingToolchainFound"));
             return false;
         }
 
@@ -193,6 +208,8 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             wizardDescriptor.putProperty(WizardDescriptor.PROP_ERROR_MESSAGE, NbBundle.getMessage(ProjectSetupPanel.class, "MSG_ErrorProjectNamePathTooLong"));
             return false;
         }
+        
+        
 
         // Set the error message to null if there is no warning message to display
         if (wizardDescriptor.getProperty(WizardDescriptor.PROP_WARNING_MESSAGE) == null) {
@@ -345,16 +362,12 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         settings.putProperty(BOARD_NAME.key(), boardName);
         settings.putProperty(BOARD_CONFIG_NAVIGATOR.key(), boardConfigNavigator);
         settings.putProperty(COPY_CORE_FILES.key(), copyCoreFiles);
-
-        if (boardId != null) {
-            settings.putProperty(DEVICE_HEADER_PRESENT.key(), false);
-            settings.putProperty(PLUGIN_BOARD_PRESENT.key(), false);
-            try {
-                WizardProjectConfiguration.storeDeviceHeaderPlugin(settings, boardConfigNavigator.parseDeviceName(boardId));
-            } catch (IOException ex) {
-                Exceptions.printStackTrace(ex);
-            }
-        }
+                
+        settings.putProperty(DEVICE_HEADER_PRESENT.key(), false);
+        settings.putProperty(PLUGIN_BOARD_PRESENT.key(), false);
+        WizardProjectConfiguration.storeDeviceHeaderPlugin(settings, deviceName);
+        
+        settings.putProperty(LANGUAGE_TOOL_META_ID.key(), languageToolchain.getMeta().getID());
 
         settings.putProperty(PROJECT_DIR.key(), new File(targetDir));
         settings.putProperty(PROJECT_NAME.key(), projectName);
@@ -479,6 +492,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     }
     
     void boardComboItemStateChanged(ItemEvent evt) {
+        updateDeviceAndToolchain();
         fireChangeEvent();
     }
     
@@ -527,7 +541,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
                 }
             }
         } else {
-            File f = new File(System.getProperty("netbeans.projects.dir"));		// NOI18N
+            File f = new File(System.getProperty("netbeans.projects.dir"));	// NOI18N
             if (f.exists()) {
                 chooser.setCurrentDirectory(f);
             }
@@ -609,6 +623,10 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         String boardName = readSelectedValueFromComboBox(view.boardCombo);
         String boardId = boardIdLookup.get(boardName);
         return boardId != null;
+    }
+    
+    private boolean isToolchainValid() {
+        return languageToolchain != null;        
     }
     
     private boolean isValidProjectName() {
@@ -696,11 +714,23 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             // Set up the combo box:
             DefaultComboBoxModel<String> cbm = new DefaultComboBoxModel<>(boardNames.toArray(new String[boardNames.size()]));
             view.boardCombo.setModel(cbm);
+            // TODO: Verify whether calling TypeAheadComboBox.enable many times does not have adverse effects
             TypeAheadComboBox.enable(view.boardCombo);
             if ( currentlySelectedBoardName != null && boardNames.contains(currentlySelectedBoardName) ) {
                 view.boardCombo.setSelectedItem(currentlySelectedBoardName);
             }
             
+        } catch (IOException ex) {
+            Exceptions.printStackTrace(ex);
+        }
+    }
+    
+    private void updateDeviceAndToolchain() {
+        try {
+            String boardName = readSelectedValueFromComboBox(view.boardCombo);
+            String boardId = boardIdLookup.get(boardName);
+            deviceName = boardConfigNavigator.parseMCU(boardId).flatMap( this::findMPLABDeviceNameForMCU ).orElse(null);                    
+            languageToolchain = findMatchingLanguageToolchain(deviceName).orElse(null);
         } catch (IOException ex) {
             Exceptions.printStackTrace(ex);
         }
@@ -734,7 +764,25 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         loadBoardsToCombo();
     }
 
+    private Optional <String> findMPLABDeviceNameForMCU(String mcu) {
+        String lowerCaseMCU = mcu.toLowerCase();
+        try {
+            return Arrays.stream( DeviceSupport.getInstance().getDeviceNames() )
+                .filter( n -> n.toLowerCase().contains(lowerCaseMCU) )
+                .min( (n1, n2) -> Integer.signum( (n1.length()-mcu.length()) - (n2.length()-mcu.length()) ) );
+        } catch (DeviceSupportException ex) {
+            Exceptions.printStackTrace(ex);
+        }
+        return Optional.empty();
+    }
     
+    private Optional <LanguageToolchain> findMatchingLanguageToolchain( String device ) {
+        if ( device != null ) {
+            return LanguageToolchainManager.getDefault().getToolchains().stream().filter(tc -> tc.getSupport(device).isSupported()).findAny();
+        } else {
+            return Optional.empty();
+        }
+    }
 
     
     private static class EncodingModel extends DefaultComboBoxModel <Charset> {
@@ -764,6 +812,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             }
             setSelectedItem(defEnc);
         }
+        
     }
 
     private static class UnknownCharset extends Charset {
@@ -786,6 +835,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         public CharsetEncoder newEncoder() {
             throw new UnsupportedOperationException();
         }
+        
     }
     
     private static class PlatformComboModel extends DefaultComboBoxModel<Platform> {

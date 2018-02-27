@@ -15,31 +15,19 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.actions;
 
-import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
-import com.microchip.mplab.nbide.embedded.arduino.utils.LanguageToolchainLocator;
 import com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardIterator;
-import com.microchip.mplab.nbide.embedded.arduino.importer.Requirements;
-import java.awt.BorderLayout;
-import java.awt.Desktop;
 import java.awt.Dialog;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.text.MessageFormat;
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JEditorPane;
-import javax.swing.JPanel;
-import javax.swing.event.HyperlinkEvent;
 import org.netbeans.api.project.Project;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.ui.OpenProjects;
-import org.openide.DialogDescriptor;
 import org.openide.DialogDisplayer;
 import org.openide.WizardDescriptor;
 import org.openide.awt.ActionID;
@@ -47,7 +35,6 @@ import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Exceptions;
-import org.openide.util.NbBundle;
 
 @ActionID(
     category = "File",
@@ -66,14 +53,9 @@ public final class ShowArduinoImportWizardAction implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         LOGGER.log(Level.INFO, "Initializing Arduino import procedure");
         
-        LanguageToolchain languageToolchain = checkLanguageToolchain();
-        if ( languageToolchain == null ) {
-            return;
-        }
-        
         ArduinoConfig arduinoConfig = ArduinoConfig.getInstance();
 
-        ImportWizardIterator wizIterator = new ImportWizardIterator( languageToolchain, arduinoConfig );
+        ImportWizardIterator wizIterator = new ImportWizardIterator( arduinoConfig );
         WizardDescriptor wiz = new WizardDescriptor(wizIterator);
 
         Dialog dialog = DialogDisplayer.getDefault().createDialog(wiz);
@@ -98,49 +80,6 @@ public final class ShowArduinoImportWizardAction implements ActionListener {
                 Exceptions.printStackTrace(ex);
             }
         }
-    }
-    
-    private LanguageToolchain checkLanguageToolchain() {
-        Optional<LanguageToolchain> opt = new LanguageToolchainLocator().findSuitableLanguageToolchain();
-        if (!opt.isPresent()) {
-            LOGGER.log(Level.INFO, "No valid XC32 toolchain found. Asking the user to download one and aborting the procedure");
-            String messageTemplate = NbBundle.getMessage(getClass(), "LanguageToolchainVersionErrorDialog.message");
-            String message = MessageFormat.format(messageTemplate, Requirements.MINIMUM_XC_TOOLCHAIN_VERSION);
-
-            JEditorPane messagePane = createMessagePane(message);
-
-            JPanel contentPane = new JPanel();
-            contentPane.setLayout(new BorderLayout(5, 5));
-            contentPane.add(messagePane, BorderLayout.CENTER);
-
-            DialogDescriptor dd = new DialogDescriptor(contentPane, NbBundle.getMessage(getClass(), "LanguageToolchainVersionErrorDialog.title"));
-            dd.setMessageType(DialogDescriptor.ERROR_MESSAGE);
-            dd.setOptionsAlign(DialogDescriptor.BOTTOM_ALIGN);
-            dd.setOptions(new Object[]{DialogDescriptor.OK_OPTION});
-
-            DialogDisplayer.getDefault().notify(dd);
-            return null;
-        } else {
-            LOGGER.log(Level.INFO, "Found XC32 toolchain. Version: {0}", opt.get().getVersion());
-            return opt.get();
-        }
-    } 
-    
-    private JEditorPane createMessagePane( String htmlMessage ) {
-        JEditorPane messagePane = new JEditorPane("text/html", htmlMessage);
-        messagePane.setEditable(false);
-        messagePane.setOpaque(false);
-        messagePane.addHyperlinkListener( (HyperlinkEvent hyperLink) -> {
-            if (HyperlinkEvent.EventType.ACTIVATED.equals(hyperLink.getEventType())) {
-                try {
-                    Desktop.getDesktop().browse( hyperLink.getURL().toURI() );
-                } catch (URISyntaxException | IOException ex) {
-                    LOGGER.log( Level.WARNING, "Failed to open URL: " + hyperLink.getURL(), ex );
-                }
-            }
-        });
-        return messagePane;
-    }
-    
+    }    
 
 }

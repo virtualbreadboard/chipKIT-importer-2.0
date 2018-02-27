@@ -37,10 +37,36 @@ public class BoardConfig {
 
     public static final PathMatcher SOURCE_FILE_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.{c,cpp,S}");
     
+    private final Platform platform;
     private final Map <String,String> data;
+    
 
-    public BoardConfig( Map <String,String> data ) {        
+    public BoardConfig( Platform platform1, Map <String,String> data ) {        
+        this.platform = platform1;
         this.data = data;
+    }
+
+    public Platform getPlatform() {
+        return platform;
+    }
+    
+    public String getArchitecture() {
+        return platform.getArchitecture();
+    }
+    
+    public boolean isPIC32() {
+        if ( platform == null || platform.getArchitecture() == null ) return false;
+        return platform.getArchitecture().toLowerCase().equals("pic32");
+    }
+    
+    public boolean isAVR() {
+        if ( platform == null || platform.getArchitecture() == null ) return false;
+        return platform.getArchitecture().toLowerCase().equals("avr");
+    }
+    
+    public boolean isSAMD() {
+        if ( platform == null || platform.getArchitecture() == null ) return false;
+        return platform.getArchitecture().toLowerCase().equals("samd");
     }
 
     public Map<String, String> getRawData() {
@@ -116,10 +142,6 @@ public class BoardConfig {
         return data.get("fqbn");
     }
     
-    public Path getPackagesRootPath() {
-        return Paths.get( data.get("packagesRoot") );
-    }
-    
     public Set <String> getExtraOptionsC() {
         Set <String> optionSet = new LinkedHashSet<>();
         parseOptions(optionSet, data.get("compiler.c.flags"));        
@@ -169,9 +191,9 @@ public class BoardConfig {
             .append("F_CPU=").append( data.get("build.f_cpu") ).append(";")
             .append("ARDUINO=").append( data.get("runtime.ide.version") ).append(";")
             .append( data.get("build.board") ).append(";")
-            // TODO: The next three macros should be read from some Arduino files    
-            .append("MPIDEVER=16777998" ).append(";")
-            .append("MPIDE=150" ).append(";")
+            // TODO: Verify whether the two MPxxx parameters are really required
+//            .append("MPIDEVER=16777998" ).append(";")
+//            .append("MPIDE=150" ).append(";")
             .append("IDE=Arduino" ).append(";")
             .append("XPRJ_default=default" ).append(";")
             .append("__CTYPE_NEWLIB").toString();
@@ -198,8 +220,10 @@ public class BoardConfig {
     }
     
     protected void parseOptions( Set <String> optionsSet, String optionsString ) {
-        String[] options = optionsString.split("::|\\s+");
-        optionsSet.addAll(Arrays.asList(options));
+        if ( optionsString != null ) {
+            String[] options = optionsString.split("::|\\s+");
+            optionsSet.addAll(Arrays.asList(options));
+        }
     }
     
 }

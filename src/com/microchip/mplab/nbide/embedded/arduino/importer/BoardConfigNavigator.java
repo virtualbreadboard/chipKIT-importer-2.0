@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
+// TODO: Refactor. The navigator should parse the whole boards.txt file and create object a BoardConfig for every board.
 public class BoardConfigNavigator {
     
     private static final Logger LOGGER = Logger.getLogger(BoardConfigNavigator.class.getName());
@@ -76,7 +78,7 @@ public class BoardConfigNavigator {
         return createPlatformFromFile(platformFilePath);
     }
     
-    public static Platform createPlatformFromFile( Path platformFilePath ) {
+    private static Platform createPlatformFromFile( Path platformFilePath ) {
         // Pattern: /home/user/.arduino15/packages/{vendor}/hardware/{architecture}/x.x.x/platform.txt
         int hardwareIndex = -1;
         for ( int i=platformFilePath.getNameCount()-1; i>=0; i-- ) {
@@ -125,21 +127,49 @@ public class BoardConfigNavigator {
         return platform;
     }
     
-    public Path getCorePath() {
-        Path coresDirPath = getPlatformRootPath().resolve("cores");
-        // Try to find the 'arduino' subdirectory:
-        Path ret = coresDirPath.resolve("arduino");
-        if ( Files.exists(ret) ) {
-            return ret;
-        } else {
-            try {
-                // Return the first subdirectory:
-                return Files.list( coresDirPath ).findFirst().get();
-            } catch (IOException ex) {
-                LOGGER.log( Level.SEVERE, "Failed to find any core directory under: " + coresDirPath , ex );
-                return null;
-            }
+    // TODO: Refactor. Move the core-searching logic to ArduinoConfig class
+    public Path getSourceCoreDirectoryPath( String boardId ) {
+        try {
+            Optional <String> coreOpt = parseCore(boardId);
+            if ( coreOpt.isPresent() ) {
+                String coreValue = coreOpt.get();
+                String[] coreTokens = coreValue.split(":");
+                if ( coreTokens.length > 1 ) {
+                    String vendor = coreTokens[0];
+                    String core = coreTokens[1];
+                    return ArduinoConfig.getInstance().findInPreferences( line -> {
+                        return line.split("=")[0].trim().endsWith("hardwarepath");
+                    }).flatMap( hardwarePath -> { 
+                        Path vendorPath = Paths.get( hardwarePath, vendor );
+                        try {
+                            return Files.walk( vendorPath )
+                                .filter( 
+                                    f -> Files.isDirectory(f)
+                                    && f.getFileName().toString().equalsIgnoreCase(core)
+                                    && f.getParent().getFileName().toString().equalsIgnoreCase("cores")
+                                )
+                                .findAny();                            
+                        } catch (IOException ex) {
+                            LOGGER.log( Level.WARNING, "Failed to find the core directory for " + coreValue, ex );
+                            return Optional.empty();
+                        }
+                    }).get();
+                } else {
+                    Path coresDirPath = getPlatformRootPath().resolve("cores").resolve(coreValue);
+                    if ( Files.exists(coresDirPath) ) {
+                        return coresDirPath;
+                    } else {
+                        LOGGER.log(Level.SEVERE, "Failed to find any core directory under: {0}", coresDirPath);
+                        return null;
+                    }
+                }                
+            } else {
+                LOGGER.log(Level.SEVERE, "Failed to find source core directory for: {0}", boardId);
+            }            
+        } catch ( IOException ex ) {
+            LOGGER.log( Level.SEVERE, "Failed to find source core directory for: " + boardId, ex );
         }
+        return null;
     }
 
     public List<String> getCurrentlyUnsupportedBoardIDs() {
@@ -148,11 +178,6 @@ public class BoardConfigNavigator {
 
     public String getProgrammerFilename() {
         return "pic32prog";
-    }
-    
-    public String parseDeviceName( String boardId ) throws IOException {
-        String mcu = parseMCU(boardId);
-        return "PIC"+mcu;
     }
     
     public Path getProgrammerPath() {
@@ -174,16 +199,6 @@ public class BoardConfigNavigator {
 
     public Path getPlatformRootPath() {
         return platform.getRootPath();
-    }
-    
-    public Path getPackagesPath() {
-        Path p = platform.getRootPath();
-        for ( int i=p.getNameCount()-1; i>=0; i-- ) {
-            if ( "packages".equalsIgnoreCase( p.getName(i).getFileName().toString() ) ) {
-                return p.getRoot().resolve( p.subpath(0, i+1) );
-            }
-        }
-        return null;
     }
         
     public Path getPlatformFilePath() {
@@ -259,7 +274,6 @@ public class BoardConfigNavigator {
     public Map<String,String> parseBoardNamesToIDsLookup() throws IOException {
         Map <String,String> ret = new HashMap<>();
         Path boardsFilePath = getPlatformRootPath().resolve( BOARDS_FILENAME );
-        // TODO: Use "map" instead of "forEach"
         Files.lines(boardsFilePath).forEach( line -> {
             if ( !line.startsWith("#") && line.contains(".name") ) {
                 // e.g: cerebot32mx4.name=Cerebot 32MX4
@@ -273,12 +287,8 @@ public class BoardConfigNavigator {
     }
     
     public Set<String> parseBoardIDs() {
-        return parseBoardIDs( platform.getRootPath() );
-    }
-    
-    public Set<String> parseBoardIDs( Path boardDirPath ) {
         try {
-            Path boardFilePath = boardDirPath.resolve( BOARDS_FILENAME );
+            Path boardFilePath = getPlatformRootPath().resolve( BOARDS_FILENAME );
             return Files.lines(boardFilePath)
                 .filter( line -> !line.isEmpty() && !line.trim().startsWith("#") && line.contains(".name") )
                 .map( line -> line.substring(0, line.indexOf(".")) ).collect( Collectors.toSet() );            
@@ -287,27 +297,31 @@ public class BoardConfigNavigator {
         }
     }
     
-    public String parseMCU( String boardId ) throws IOException {
+    public Optional <String> parseMCU( String boardId ) throws IOException {
+        return parseConfigValue( boardId + ".build.mcu" );
+    }
+    
+    public Optional <String> parseCore( String boardId ) throws IOException {
+        return parseConfigValue( boardId + ".build.core" );
+    }
+    
+    public Optional<String> parseConfigValue( String key ) throws IOException {
         Path boardsFilePath = getPlatformRootPath().resolve( BOARDS_FILENAME );
-        String key = boardId + ".build.mcu";
-        Optional <String> result = Files.readAllLines(boardsFilePath).stream().filter( line -> !line.startsWith("#") && line.contains(key) ).findFirst();
-        String line = result.get();
-        if ( line != null ) {
-            return line.substring( line.indexOf("=")+1 );
-        } else {
-            return null;
-        }
+        return Files.lines(boardsFilePath)
+            .filter( line -> !line.startsWith("#") && line.contains(key) )
+            .findFirst()
+            .map( line -> line.substring( line.indexOf("=")+1 ) );
     }
             
     public BoardConfig readCompleteBoardConfig(String boardId, Path coreDirPath, Path variantDirPath, Path ldScriptDirPath ) throws IOException {
         Map<String, String> data = readCompleteBoardConfigToMap(boardId, coreDirPath, variantDirPath, ldScriptDirPath);
         switch (platform.getArchitecture().toLowerCase()) {
             case "pic32":
-                return new ChipKitBoardConfig(data);
+                return new ChipKitBoardConfig(platform, data);
             case "samd":
-                return new SAMDBoardConfig(data);
+                return new SAMDBoardConfig(platform, data);
             default:
-                return new BoardConfig(data);                
+                return new BoardConfig(platform, data);
         }
     }
     
@@ -318,14 +332,13 @@ public class BoardConfigNavigator {
         config.put("build.variant.path", variantDirPath != null ? variantDirPath.toString() : "" );
         config.put("build.ldscript_dir.path", ldScriptDirPath != null ? ldScriptDirPath.toString() : "" );
         config.put("fqbn", getFullyQualifiedBoardName(boardId));
-        config.put("packagesRoot", getPackagesPath().toString() );
         config.put("build.arch", platform.getArchitecture().toUpperCase() );
 
         readPlatformFile( getPlatformFilePath(), config );
         readBoardsFile( getBoardsFilePath(), boardId, config );
         readBoardsFile( getVariantBoardsFilePath(boardId), boardId, config );
         
-        Pattern tokenPattern = Pattern.compile("(\\{[\\.|\\w]*\\})");
+        Pattern tokenPattern = Pattern.compile("(\\{[\\.|\\w|\\-|_]*\\})");
         config.entrySet().forEach( e -> {
             Matcher m = tokenPattern.matcher(e.getValue());
             String newValue = e.getValue();

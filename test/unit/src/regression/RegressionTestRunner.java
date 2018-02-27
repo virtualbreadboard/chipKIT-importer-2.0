@@ -1,5 +1,6 @@
 package regression;
 
+import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import utils.Utilities;
 import java.io.IOException;
 import java.io.InputStream;
@@ -82,6 +83,7 @@ public class RegressionTestRunner extends BlockJUnit4ClassRunner {
             itm.vendor,
             itm.architecture,
             itm.boardId, 
+            itm.boardCpu, 
             itm.sourceProjectPath, 
             itm.targetProjectPath
         );
@@ -119,25 +121,33 @@ public class RegressionTestRunner extends BlockJUnit4ClassRunner {
                 List<Path> platformProjectPaths = ptc.getAdditionalProjectPaths();
                 Path rootHardwarePath = ptc.getPlatform().getRootPath();
                 
-                for ( String boardID : ptc.getBoardIDs() ) {                    
-                    Path boardTestAreaPath = testAreaPath.resolve( boardID );
-                    
-                    // Common sample projects:
-                    for (Path sourceProjectPath : commonProjectPaths) {
-                        Path relativeProjectPath = examplesPath.relativize( sourceProjectPath );
-                        Path targetProjectPath = boardTestAreaPath.resolve(relativeProjectPath);                        
-                        ret.add( new ImporterTestMethod(
-                            method, ptc.getPlatform().getVendor(), ptc.getPlatform().getArchitecture(), boardID, sourceProjectPath, targetProjectPath
-                        ) );
+                for ( String boardId : ptc.getBoardIDs() ) {
+                    Board board = ptc.getPlatform().getBoard(boardId);
+                    List <String> cpus = new ArrayList<> (board.getCPUs());
+                    if ( cpus.isEmpty() ) {
+                        // Add an empty string to CPUs list to make sure that there is always at least one test method created
+                        cpus.add("");
                     }
                     
-                    // Platform specific sample projects:
-                    for (Path sourceProjectPath : platformProjectPaths) {                        
-                        Path relativeProjectPath = rootHardwarePath.relativize( sourceProjectPath );
-                        Path targetProjectPath = boardTestAreaPath.resolve(relativeProjectPath);                        
-                        ret.add( new ImporterTestMethod(
-                            method, ptc.getPlatform().getVendor(), ptc.getPlatform().getArchitecture(), boardID, sourceProjectPath, targetProjectPath
-                        ) );
+                    for ( String cpu : cpus ) {
+                        Path boardTestAreaPath = testAreaPath.resolve( ptc.getPlatform().getVendor() ).resolve( ptc.getPlatform().getArchitecture() ).resolve( boardId );
+                        if ( !cpu.isEmpty() ) {
+                            boardTestAreaPath = boardTestAreaPath.resolve( cpu );
+                        }
+
+                        // Common sample projects:
+                        for (Path sourceProjectPath : commonProjectPaths) {
+                            Path relativeProjectPath = examplesPath.relativize( sourceProjectPath );
+                            Path targetProjectPath = boardTestAreaPath.resolve(relativeProjectPath);
+                            addTestMethodsToList(ret, method, ptc, boardId, cpu, sourceProjectPath, targetProjectPath);
+                        }
+
+                        // Platform specific sample projects:
+                        for (Path sourceProjectPath : platformProjectPaths) {                        
+                            Path relativeProjectPath = rootHardwarePath.relativize( sourceProjectPath );
+                            Path targetProjectPath = boardTestAreaPath.resolve(relativeProjectPath);                        
+                            addTestMethodsToList(ret, method, ptc, boardId, cpu, sourceProjectPath, targetProjectPath);
+                        }
                     }
                 }
             }
@@ -149,6 +159,11 @@ public class RegressionTestRunner extends BlockJUnit4ClassRunner {
     }
     
     
+    private void addTestMethodsToList( List<FrameworkMethod> ret, Method method, RegressionTestConfig.PlatformTestConfig ptc, String boardId, String cpu, Path sourceProjectPath, Path targetProjectPath ) {
+        ret.add( new ImporterTestMethod(
+            method, ptc.getPlatform().getVendor(), ptc.getPlatform().getArchitecture(), boardId, cpu, sourceProjectPath, targetProjectPath
+        ) );
+    }
 
     private void loadConfigFile() throws InitializationError, URISyntaxException {
         try (InputStream input = getClass().getResourceAsStream( CONFIG_FILE_NAME )) {
@@ -163,21 +178,23 @@ public class RegressionTestRunner extends BlockJUnit4ClassRunner {
         private final String vendor;
         private final String architecture;
         private final String boardId;
+        private final String boardCpu;        
         private final Path sourceProjectPath;
         private final Path targetProjectPath;
 
-        public ImporterTestMethod(Method method, String vendor, String architecture, String boardId, Path sourceProjectPath, Path targetProjectPath) {
+        public ImporterTestMethod(Method method, String vendor, String architecture, String boardId, String boardCpu, Path sourceProjectPath, Path targetProjectPath) {
             super(method);
             this.vendor = vendor;
             this.architecture = architecture;
             this.boardId = boardId;
+            this.boardCpu = boardCpu;
             this.sourceProjectPath = sourceProjectPath;
             this.targetProjectPath = targetProjectPath;
         }
 
         @Override
         public String getName() {
-            return vendor + ":" + architecture + ":" + boardId + " " + sourceProjectPath;
+            return vendor + ":" + architecture + ":" + boardId + ( (boardCpu != null && !boardCpu.isEmpty()) ? ":cpu=" + boardCpu : "") + " " + sourceProjectPath;
         }
     }
 

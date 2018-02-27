@@ -17,6 +17,7 @@ package com.microchip.mplab.nbide.embedded.arduino.importer.chipkit;
 
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfig;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,8 +29,8 @@ import java.util.Set;
 public class ChipKitBoardConfig extends BoardConfig {
 
 
-    public ChipKitBoardConfig( Map <String,String> data ) {        
-        super( data );
+    public ChipKitBoardConfig( Platform platform, Map <String,String> data ) {        
+        super( platform, data );
     }
     
     @Override
