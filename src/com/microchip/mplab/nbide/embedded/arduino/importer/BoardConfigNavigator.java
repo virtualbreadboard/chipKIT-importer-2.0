@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
-// TODO: Refactor. The navigator should parse the whole boards.txt file and create object a BoardConfig for every board.
+// TODO: Remove
 public class BoardConfigNavigator {
     
     private static final Logger LOGGER = Logger.getLogger(BoardConfigNavigator.class.getName());

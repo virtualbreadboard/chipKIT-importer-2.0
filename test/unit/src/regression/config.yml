@@ -24,6 +24,7 @@ testAreaDir: test-area
 # Each platform is defined by a Vendor/Architecture pair and can specify IDs of boards that should be excluded from the tests
 # as well as relative paths to platform-specific projects that should be included (e.g library examples)
 platforms:
+    - Atmel-AVR-xminis/AVR:
 #    - Adafruit/SAMD:
 #        excludeBoards: 
 #            - adafruit_feather_m0_express
@@ -31,11 +32,11 @@ platforms:
 #            - adafruit_circuitplayground_m0
 #            - adafruit_gemma_m0
 #            - adafruit_trinket_m0
-
 #    - SparkFun/SAMD:        
 #    - Arduino/SAMD:
     - Arduino/AVR:
         excludeBoards: 
+#            - uno
 #            - yun
 #            - mega
 #            - diecimila
@@ -61,8 +62,9 @@ platforms:
 #            - chiwawa
 #            - one
 #            - unowifi
-#    - chipKIT/PIC32:
-#        excludeBoards: 
+    - chipKIT/PIC32:
+        excludeBoards: 
+#            - chipkit_uc32
 #            - cerebot_mx3ck
 #            - chipkit_mx3
 #            - cerebot_mx3ck_512
@@ -100,9 +102,11 @@ platforms:
 #            - chipkit_WiFire_80MHz
 #            - OpenScope
 #            - openbci
-#            - lenny
 #            - clicker2
 #            - flipnclickmz
+#            - dsmini
+#            - lenny
+#            - RGB_Station
 #        includeProjectsFrom:
 #            - libraries/SPI/examples/BarometricPressureSensor/
 #            - libraries/Wire/examples/slave_sender/

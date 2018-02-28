@@ -36,8 +36,6 @@ public abstract class AbstractMakeAssistant {
     
     private static final Logger LOGGER = Logger.getLogger(AbstractMakeAssistant.class.getName());
 
-    protected static final String TOOLS_DIR = "TOOLS_DIR";
-
     private List<String> compilationCommands;
     private List <String> makefileContents;
     private List <String> objectFilenames;
@@ -106,14 +104,13 @@ public abstract class AbstractMakeAssistant {
         
         makefileContents = new ArrayList<>();
         objectFilenames = new ArrayList<>();
-//        makefileContents.add( TOOLS_DIR + "=" + compilerPath.getParent().toString() );
         makefileContents.add( getTargetName() + ":" );
         
         // Add variant and core source file paths:
         List <Path> allSourceFiles = getSourceFilePaths(board);
         
-        Map <String,String> auxData = new HashMap<>();
-        auxData.put( "runtime.tools.avr-gcc.path", getToolchainPath().toString() );
+        Map <String,String> runtimeData = new HashMap<>();
+        runtimeData.put( getToolsPathKey(), getToolchainPath().toString() );
         
         // Generete compilation commands:
         allSourceFiles.forEach(sourceFilePath -> {                
@@ -122,27 +119,30 @@ public abstract class AbstractMakeAssistant {
             objectFilenames.add( targetFileName );
             StringBuilder command = new StringBuilder("\t");
             
-            auxData.put("source_file", sourceFilePath.toString());
-            auxData.put("object_file", targetFileName);
-            auxData.put("includes", buildIncludesSection(board) );
+            runtimeData.put("source_file", sourceFilePath.toString());
+            runtimeData.put("object_file", targetFileName);
+            runtimeData.put("includes", buildIncludesSection(board) );
             
             if (sourceFileName.endsWith(".S")) {
-                command.append( board.getValue("recipe.S.o.pattern", auxData).get() );
+                command.append( board.getValue("recipe.S.o.pattern", runtimeData).get() );
             } else if (sourceFileName.endsWith(".c")) {
-                command.append( board.getValue("recipe.c.o.pattern", auxData).get() );
+                command.append( board.getValue("recipe.c.o.pattern", runtimeData).get() );
             } else if (sourceFileName.endsWith(".cpp")) {
-                command.append( board.getValue("recipe.cpp.o.pattern", auxData).get() );
+                command.append( board.getValue("recipe.cpp.o.pattern", runtimeData).get() );
             }
-
-//            appendCompilerInvocation(command, compilerPath);
-//            appendLanguageSpecificOptions(command, board, sourceFilePath);
-//            appendProcessorOptions(command, board);
-//            appendDependencies(command, board, sourceFilePath);
-//            appendMacros(command, board);
-            
-            
             makefileContents.add( command.toString() );
         });                
+    }
+    
+    protected String getToolsPathKey() {
+        com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Platform platform = getBoard().getPlatform();
+        if ( platform.isSAMD()) {
+            return "runtime.tools.arm-none-eabi-gcc.path";
+        } else if ( platform.isPIC32() ) {
+            return "runtime.tools.pic32-tools.path";
+        } else {
+            return "runtime.tools.avr-gcc.path";
+        }
     }
     
     protected String buildIncludesSection( Board board ) {
@@ -154,65 +154,6 @@ public abstract class AbstractMakeAssistant {
         }
         ret.append(" \"-I").append(corePath).append("\"");
         return ret.toString();
-    }
-    
-    protected void appendCompilerInvocation( StringBuilder command, Path compilerPath ) {
-        command.append("\"${").append(TOOLS_DIR).append("}").append("/").append(compilerPath.getFileName().toString()).append("\"");
-        command.append(" -c");
-        command.append( " " );
-    }
-    
-//    protected void appendLanguageSpecificOptions( StringBuilder command, Board config, Path sourceFilePath ) {
-//        String sourceFileName = sourceFilePath.getFileName().toString();
-//        if (sourceFileName.endsWith(".S")) {
-//            command.append( String.join(" ", config.getExtraOptionsAS() ) );
-//            command.append(" -O1");
-//        } else if (sourceFileName.endsWith(".c")) {
-//            command.append(" -g");
-//            command.append(" -x");
-//            command.append(" c");
-//            command.append(" -w");
-//            command.append(" -O1");
-//            command.append( " " );
-//            command.append( String.join(" ", config.getCompilerWarnings()) );
-//            command.append( " " );
-//            command.append( String.join(" ", config.getExtraOptionsC()) );
-//        } else if (sourceFileName.endsWith(".cpp")) {
-//            command.append(" -g");
-//            command.append(" -x");
-//            command.append(" c++");
-//            command.append(" -w");
-//            command.append(" -O1");
-//            command.append( " " );
-//            command.append( String.join(" ", config.getCompilerWarnings()) );
-//            command.append( " " );
-//            command.append( String.join( " ", config.getExtraOptionsCPP() ) );
-//        }
-//    }
-    
-    protected void appendProcessorOptions( StringBuilder command, BoardConfig config ) {
-        command.append( String.join(" ", config.getProcessorOptions() ) );
-    }
-    
-    protected void appendDependencies( StringBuilder command, Board config ) {
-        Path variantPath = config.getVariantPath();
-        Path corePath = config.getCoreDirectoryPath();
-        if (variantPath != null && !variantPath.equals(corePath)) {
-            command.append(" -I\"").append(variantPath).append("\"");
-        }
-        command.append(" -I\"").append(corePath).append("\"");
-    }
-    
-    protected void appendMacros( StringBuilder command, BoardConfig config ) {
-        command.append( " " ).append( String.join( " ", parseCompilerMacros(config.getCompilerMacros() ) ) );
-    }
-    
-    protected void appendSourceFilePath( StringBuilder command, Path sourceFilePath ) {
-        command.append( " \"" ).append( sourceFilePath.toString() ).append( "\"" );
-    }
-    
-    protected void appendTargetFilePath( StringBuilder command, Path targetFilePath ) {
-        command.append( " -o \"" ).append( targetFilePath.toString() ).append( "\"" );
     }
     
     protected void writeMakefile() throws IOException {

@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -80,42 +81,44 @@ public class ProjectBuilder extends AbstractMakeAssistant {
         this.libraryPaths = Stream.concat(importer.getMainLibraryDirPaths(), importer.getAuxLibraryDirPaths()).collect( Collectors.toList() );
         build(messageConsumer, errorConsumer);
     }
+    
+    
 
-    @Override
-    protected void appendDependencies(StringBuilder command, Board config) {
-        super.appendDependencies(command, config); 
-        libraryPaths.forEach( dir ->  {
-            command.append(" -I\"").append(dir.toString()).append("\"");
-        });
-        
-        
-//        String sourceDir = projectDirPath.resolve( ProjectImporter.SOURCE_FILES_DIRECTORY_NAME ).toString();
-//        Path librariesDirPath = projectDirPath.resolve( LIBRARIES_DIRECTORY_NAME );
+//    @Override
+//    protected void appendDependencies(StringBuilder command, Board config) {
+//        super.appendDependencies(command, config); 
+//        libraryPaths.forEach( dir ->  {
+//            command.append(" -I\"").append(dir.toString()).append("\"");
+//        });
 //        
-//        if ( sourceFilePath.toString().startsWith( sourceDir ) ) {            
-//            try {
-//                Files.list(librariesDirPath).forEach( dir -> {
-//                    command.append(" -I\"").append(dir.toString()).append("\"");
-//                });
-//            } catch (IOException ex) {
-//                throw new RuntimeException(ex);
-//            }
+//        
+////        String sourceDir = projectDirPath.resolve( ProjectImporter.SOURCE_FILES_DIRECTORY_NAME ).toString();
+////        Path librariesDirPath = projectDirPath.resolve( LIBRARIES_DIRECTORY_NAME );
+////        
+////        if ( sourceFilePath.toString().startsWith( sourceDir ) ) {            
+////            try {
+////                Files.list(librariesDirPath).forEach( dir -> {
+////                    command.append(" -I\"").append(dir.toString()).append("\"");
+////                });
+////            } catch (IOException ex) {
+////                throw new RuntimeException(ex);
+////            }
+////        }
+//    }
+//
+//    @Override
+//    protected void appendTargetFilePath(StringBuilder command, Path targetFilePath) {
+//        Path buildPath = projectDirPath.resolve( "build" ).resolve("default").resolve("production");
+//        Path newTargetFilePath = buildPath.resolve( projectDirPath.relativize( targetFilePath ) );
+//        command.append( " -o \"" );
+//        try {
+//            Files.createDirectories( newTargetFilePath.getParent() );
+//            command.append( newTargetFilePath.toString() );
+//        } catch (IOException ex) {
+//            throw new RuntimeException(ex);
 //        }
-    }
-
-    @Override
-    protected void appendTargetFilePath(StringBuilder command, Path targetFilePath) {
-        Path buildPath = projectDirPath.resolve( "build" ).resolve("default").resolve("production");
-        Path newTargetFilePath = buildPath.resolve( projectDirPath.relativize( targetFilePath ) );
-        command.append( " -o \"" );
-        try {
-            Files.createDirectories( newTargetFilePath.getParent() );
-            command.append( newTargetFilePath.toString() );
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-        command.append( "\"" );
-    }
+//        command.append( "\"" );
+//    }
     
     @Override
     protected void invokeMakeTool( Consumer<String> messageConsumer, Consumer<String> errorConsumer ) throws IOException, InterruptedException {

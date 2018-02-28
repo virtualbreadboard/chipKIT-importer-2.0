@@ -21,7 +21,6 @@ import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoBuilderRunner;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
 import com.microchip.mplab.nbide.embedded.arduino.importer.BootloaderPathProvider;
-import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfigNavigator;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.arduino.importer.GCCToolFinder;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
@@ -239,8 +238,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
 
         boolean copyFiles = (boolean) wizardDescriptor.getProperty(COPY_CORE_FILES.key());
         File targetProjectDir = (File) wizardDescriptor.getProperty(PROJECT_DIR.key());
-        File sourceProjectDir = (File) wizardDescriptor.getProperty(SOURCE_PROJECT_DIR.key());
-        BoardConfigNavigator boardConfigNavigator = (BoardConfigNavigator) wizardDescriptor.getProperty(BOARD_CONFIG_NAVIGATOR.key());
+        File sourceProjectDir = (File) wizardDescriptor.getProperty(SOURCE_PROJECT_DIR.key());        
         String boardId = (String) wizardDescriptor.getProperty(BOARD_ID.key());
         File arduinoInstallDir = (File) wizardDescriptor.getProperty(ARDUINO_DIR.key());
 
@@ -261,7 +259,6 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
 
         ProjectImporter importer = new ProjectImporter();
         importer.setCopyingFiles( copyFiles );
-//        importer.setBoardId( boardId );
         importer.setSourceProjectDirectoryPath( sourceProjectDir.toPath() );
         importer.setTargetProjectDirectoryPath( targetProjectDir.toPath() );
         importer.setArduinoBuilderRunner( arduinoBuilderRunner );

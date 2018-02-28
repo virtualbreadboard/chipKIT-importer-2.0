@@ -15,13 +15,11 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
-import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -88,23 +86,10 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
         updateMakefile( makefilePath, toolFinder );
         invokeMakeTool(messageConsumer, messageConsumer);
     }
-
-    public void build(BoardConfig config, GCCToolFinder toolFinder) throws IOException, InterruptedException {
-        build(config, toolFinder, null);
-    }
     
-    public void build(Board board, GCCToolFinder toolFinder, Consumer<String> messageConsumer) throws IOException, InterruptedException {
+    public void build( Board board, GCCToolFinder toolFinder, Consumer<String> messageConsumer ) throws IOException, InterruptedException {
         this.buildDirPath = Files.createTempDirectory("build");
         this.board = board;
-        this.toolFinder = toolFinder;
-        this.libCorePath = buildDirPath.resolve(LIB_CORE_FILENAME);
-        build( messageConsumer, messageConsumer );
-    }
-    
-    // TODO: Remove
-    public void build(BoardConfig boardConfig, GCCToolFinder toolFinder, Consumer<String> messageConsumer) throws IOException, InterruptedException {
-        this.buildDirPath = Files.createTempDirectory("build");
-        this.boardConfig = boardConfig;
         this.toolFinder = toolFinder;
         this.libCorePath = buildDirPath.resolve(LIB_CORE_FILENAME);
         build( messageConsumer, messageConsumer );
@@ -115,35 +100,31 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
         super.generateMakefile();
         
         // Generate archiver command:
-        Map <String,String> auxData = new HashMap<>();
-        auxData.put( "runtime.tools.avr-gcc.path", getToolchainPath().toString() );
-        auxData.put( "archive_file_path", LIB_CORE_FILENAME );
+        Map <String,String> runtimeData = new HashMap<>();
+        runtimeData.put( getToolsPathKey(), getToolchainPath().toString() );
+        runtimeData.put( "archive_file_path", LIB_CORE_FILENAME );
         getObjectFilenames().forEach( n -> {
-            auxData.put("object_file", n);
-            getMakefileContents().add( "\t" + board.getValue("recipe.ar.pattern", auxData).get() );
+            runtimeData.put("object_file", n);
+            getMakefileContents().add( "\t" + board.getValue("recipe.ar.pattern", runtimeData).get() );
         });
     } 
-    
-    @Override
-    protected void appendTargetFilePath( StringBuilder command, Path targetFilePath ) {
-        command.append( " -o \"" ).append( targetFilePath.getFileName().toString() ).append( "\"" );
-    }
     
 
     //*************************************************
     //*************** PRIVATE METHODS *****************
     //*************************************************
     private static void updateMakefile(Path makefilePath, GCCToolFinder toolFinder) throws IOException {
-        Path compilerPath = toolFinder.findTool( LanguageTool.CCCompiler );
-        List<String> makefileLines = Files.readAllLines(makefilePath);
-        for ( int i=0; i<makefileLines.size(); i++ ) {
-            String line = makefileLines.get(i).trim();
-            if ( line.startsWith( TOOLS_DIR ) ) {
-                makefileLines.set( i, TOOLS_DIR + "=" + compilerPath.getParent().toString() );
-                break;
-            }
-        }
-        Files.write(makefilePath, makefileLines);
+        throw new UnsupportedOperationException("Updating a Makefile is not supported yet!");
+//        Path compilerPath = toolFinder.findTool( LanguageTool.CCCompiler );
+//        List<String> makefileLines = Files.readAllLines(makefilePath);
+//        for ( int i=0; i<makefileLines.size(); i++ ) {
+//            String line = makefileLines.get(i).trim();
+//            if ( line.startsWith( TOOLS_DIR ) ) {
+//                makefileLines.set( i, TOOLS_DIR + "=" + compilerPath.getParent().toString() );
+//                break;
+//            }
+//        }
+//        Files.write(makefilePath, makefileLines);
     }
 
 }

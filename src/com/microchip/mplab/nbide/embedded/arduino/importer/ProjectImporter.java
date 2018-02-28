@@ -157,17 +157,15 @@ public class ProjectImporter {
         Path variantDirPath = copyingFiles ? getTargetCoreDirectoryPath() : sourceVariantDirPath;
         Path ldScriptDirPath = customLdScriptBoard ? getTargetCoreDirectoryPath() : null;
         
+        
+        // TODO: Move this section somewhere else!
         board.getPlatform().putValue("runtime.ide.version", "10802");
+        board.putValue("build.path", "\""+targetProjectDirectoryPath.toString()+"\"" );
         board.putValue("build.core.path", coreDirPath.toString() );
         board.putValue("build.variant.path", variantDirPath != null ? variantDirPath.toString() : "" );
         board.putValue("build.ldscript_dir.path", ldScriptDirPath != null ? ldScriptDirPath.toString() : "" );
         
-//        config = boardConfigNavigator.readCompleteBoardConfig( 
-//            board.getBoardId(), 
-//            copyingFiles ? getTargetCoreDirectoryPath() : sourceCoreDirPath, 
-//            copyingFiles ? getTargetCoreDirectoryPath() : sourceVariantDirPath, 
-//            customLdScriptBoard ? getTargetCoreDirectoryPath() : null
-//        );
+        
         
         createProjectDirectoryStructure();
         Path tempSketchPath = preprocessSourceProject();
