@@ -7,9 +7,9 @@ import com.microchip.mplab.nbide.embedded.arduino.importer.BootloaderPathProvide
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.arduino.importer.GCCToolFinder;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.*;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Platform;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.PlatformFactory;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
+import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;

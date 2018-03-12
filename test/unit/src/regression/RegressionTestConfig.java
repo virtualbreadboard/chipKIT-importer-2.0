@@ -1,7 +1,7 @@
 package regression;
 
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Platform;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.PlatformFactory;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
+import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

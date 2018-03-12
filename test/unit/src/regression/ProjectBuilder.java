@@ -18,7 +18,7 @@ package regression;
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.arduino.importer.*;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.LIBRARIES_DIRECTORY_NAME;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
