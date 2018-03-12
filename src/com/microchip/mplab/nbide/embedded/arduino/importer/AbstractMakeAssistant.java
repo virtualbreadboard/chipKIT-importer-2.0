@@ -16,7 +16,6 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -135,7 +134,7 @@ public abstract class AbstractMakeAssistant {
     }
     
     protected String getToolsPathKey() {
-        com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Platform platform = getBoard().getPlatform();
+        com.microchip.mplab.nbide.embedded.arduino.importer.Platform platform = getBoard().getPlatform();
         if ( platform.isSAMD()) {
             return "runtime.tools.arm-none-eabi-gcc.path";
         } else if ( platform.isPIC32() ) {

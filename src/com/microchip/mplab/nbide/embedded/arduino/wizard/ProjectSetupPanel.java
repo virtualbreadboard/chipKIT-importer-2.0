@@ -349,7 +349,7 @@ class ProjectSetupPanel extends JPanel {
         public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             JLabel component = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if ( value instanceof Platform ) {
-                component.setText( ((Platform) value).getDisplayName() );
+                component.setText( ((Platform) value).getDisplayName().orElse("<unknown>") );
             }
             return component;
         }

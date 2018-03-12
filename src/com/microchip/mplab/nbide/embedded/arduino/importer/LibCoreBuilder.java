@@ -15,7 +15,6 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +30,6 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
     public static final String LIB_CORE_FILENAME = "lib" + LIB_CORE_NAME + ".a";
     
     private Path buildDirPath;
-    private BoardConfig boardConfig;
     private Board board;
     private GCCToolFinder toolFinder;
     private Path libCorePath;

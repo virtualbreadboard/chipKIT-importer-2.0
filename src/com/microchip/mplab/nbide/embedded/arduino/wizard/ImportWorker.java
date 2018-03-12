@@ -60,7 +60,7 @@ import org.openide.filesystems.FileUtil;
 import org.openide.modules.InstalledFileLocator;
 import org.openide.util.Exceptions;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.IMPORTED_PROPERTIES_FILENAME;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
 import com.microchip.mplab.nbide.embedded.arduino.wizard.avr.AVRProjectConfigurationImporter;
 import com.microchip.mplab.nbide.embedded.arduino.wizard.pic32.PIC32ProjectConfigurationImporter;
 import java.util.Arrays;
@@ -164,12 +164,12 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
     private Set<FileObject> createProject() throws IOException, InterruptedException {
         Set<FileObject> projectRootDirectories = new HashSet<>(1);
         File projectDirectory = initProjectDirectoryFromWizard(projectRootDirectories);
-        String boardId = (String) wizardDescriptor.getProperty(BOARD_ID.key());
+        Board board = (Board) wizardDescriptor.getProperty(BOARD.key());
         
         MakeConfiguration[] confs;
         MakeConfiguration defaultConf = createDefaultMakefileConfiguration(projectDirectory);
-        if ( ProjectImporter.CUSTOM_LD_SCRIPT_BOARD_IDS.contains(boardId) ) {
-            MakeConfiguration debugConf = createDebugMakefileConfiguration(projectDirectory);            
+        if ( ProjectImporter.CUSTOM_LD_SCRIPT_BOARD_IDS.contains(board.getBoardId()) ) {
+            MakeConfiguration debugConf = createDebugMakefileConfiguration(projectDirectory);
             confs = new MakeConfiguration[]{defaultConf, debugConf};
         } else {
             confs = new MakeConfiguration[]{defaultConf};
@@ -239,7 +239,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         boolean copyFiles = (boolean) wizardDescriptor.getProperty(COPY_CORE_FILES.key());
         File targetProjectDir = (File) wizardDescriptor.getProperty(PROJECT_DIR.key());
         File sourceProjectDir = (File) wizardDescriptor.getProperty(SOURCE_PROJECT_DIR.key());        
-        String boardId = (String) wizardDescriptor.getProperty(BOARD_ID.key());
+        Board board = (Board) wizardDescriptor.getProperty(BOARD.key());
         File arduinoInstallDir = (File) wizardDescriptor.getProperty(ARDUINO_DIR.key());
 
         GCCToolFinder toolFinder = new GCCToolFinder(newProject.getActiveConfiguration().getLanguageToolchain().findToolchain());
@@ -259,6 +259,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
 
         ProjectImporter importer = new ProjectImporter();
         importer.setCopyingFiles( copyFiles );
+        importer.setBoard(board);
         importer.setSourceProjectDirectoryPath( sourceProjectDir.toPath() );
         importer.setTargetProjectDirectoryPath( targetProjectDir.toPath() );
         importer.setArduinoBuilderRunner( arduinoBuilderRunner );
@@ -269,8 +270,6 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         // This will be used to display either the short "how-to" guide or the longer one:
         multiConfigBoard = importer.isCustomLdScriptBoard();
         
-        Board board = importer.getBoard();
-
         // Create Imported Core Logical Folder
         Folder importedCoreFolder = newProjectDescriptor.getLogicalFolders().addNewFolder(ProjectImporter.CORE_DIRECTORY_NAME,
             "Imported Core",
@@ -356,7 +355,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
             LoadableItem newLoadableItem = new LoadableItem.FileItem( loadableItemPath );
             newProjectDescriptor.addLoadableItem(newLoadableItem);
         } else if ( !importer.isCustomLdScriptBoard() ) {  // If the board uses a custom .ld script, it is supposed not to use a bootloader
-            LOGGER.log(Level.WARNING, "Could not find a bootloader file for device {0}", boardId);
+            LOGGER.log(Level.WARNING, "Could not find a bootloader file for device {0}", board.getBoardId());
         }
         
         // Set auxiliary configuration options

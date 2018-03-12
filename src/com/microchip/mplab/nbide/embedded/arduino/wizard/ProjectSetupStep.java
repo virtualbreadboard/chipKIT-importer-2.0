@@ -26,7 +26,6 @@ import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
 import com.microchip.mplab.nbide.embedded.api.ui.TypeAheadComboBox;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
-import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfigNavigator;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -57,6 +56,8 @@ import javax.swing.JTextField;
 import static com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardProperty.*;
 import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.*;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.Requirements.MINIMUM_ARDUINO_VERSION;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import com.microchip.mplab.nbide.embedded.arduino.utils.ArduinoProjectFileFilter;
 import com.microchip.mplab.nbide.embedded.makeproject.ui.wizards.WizardProjectConfiguration;
 import java.awt.event.FocusEvent;
@@ -91,9 +92,9 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private final Set<ChangeListener> listeners = new HashSet<>();
     private Map<String, String> boardIdLookup = new HashMap<>();
     private final ArduinoConfig arduinoConfig;
+    private final PlatformFactory platformFactory;
     private List<Platform> allPlatforms;
     private Platform currentPlatform;
-    private BoardConfigNavigator boardConfigNavigator;
     private WizardDescriptor wizardDescriptor;
     private ProjectSetupPanel view;
     private String deviceName;
@@ -101,6 +102,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
 
     public ProjectSetupStep( ArduinoConfig arduinoConfig ) {
         this.arduinoConfig = arduinoConfig;
+        this.platformFactory = new PlatformFactory();
     }
 
     @Override
@@ -109,8 +111,8 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             view = new ProjectSetupPanel(this);
             view.encodingCombo.setModel( new EncodingModel(NbPreferences.root().get("DEFAULT_CHARSET", "ISO-8859-1")) );
             try {
-                allPlatforms = BoardConfigNavigator.findPlatforms(arduinoConfig.getSettingsPath());
-                Collections.sort(allPlatforms, (Platform p1, Platform p2) -> p1.getDisplayName().compareTo(p2.getDisplayName()));
+                allPlatforms = new ArrayList<>(platformFactory.getAllPlatforms(arduinoConfig.getSettingsPath()));
+                Collections.sort(allPlatforms, (Platform p1, Platform p2) -> p1.getDisplayName().orElse("").compareTo(p2.getDisplayName().orElse("")));
                 view.platformCombo.setModel( new PlatformComboModel(allPlatforms) );
             } catch (IOException ex) {
                 Exceptions.printStackTrace(ex);
@@ -209,8 +211,6 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             return false;
         }
         
-        
-
         // Set the error message to null if there is no warning message to display
         if (wizardDescriptor.getProperty(WizardDescriptor.PROP_WARNING_MESSAGE) == null) {
             wizardDescriptor.putProperty(WizardDescriptor.PROP_ERROR_MESSAGE, null);
@@ -293,10 +293,11 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             } else {
                 try {
                     // Default platform
-                    currentPlatform = BoardConfigNavigator.findPlatform("arduino","avr", arduinoConfig.getSettingsPath());
+                    currentPlatform = new PlatformFactory().createPlatform(arduinoConfig.getSettingsPath(), "arduino", "avr");
                 } catch (IOException ex) {
                     Exceptions.printStackTrace(ex);
                 }
+                
             }
         }
         if (currentPlatform != null) {            
@@ -348,19 +349,25 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         String sourceProjectDir = readLocationStringFromField( view.sourceProjectLocationField );
         String arduinoDir = readLocationStringFromField( view.arduinoLocationField );
         String platformDir = readLocationStringFromField(view.platformLocationField );
-        String boardName = readSelectedValueFromComboBox(view.boardCombo);
-        String boardId = boardIdLookup.get(boardName);
+        String boardName = readSelectedValueFromComboBox(view.boardCombo);        
         String targetLocation = readLocationStringFromField( view.targetProjectLocationField );
         String targetDir = readLocationStringFromField( view.projectDirectoryField );
         boolean copyCoreFiles = view.copyDependenciesCheckBox.isSelected();
+        
+        Board board = null;
+        try {
+            String boardId = boardIdLookup.get(boardName);
+            board = currentPlatform.getBoard(boardId);
+        } catch (IOException ex) {
+            Exceptions.printStackTrace(ex);
+        }
 
         settings.putProperty(SOURCE_PROJECT_DIR.key(), new File(sourceProjectDir));
         settings.putProperty(ARDUINO_DIR.key(), new File(arduinoDir));
         settings.putProperty(ARDUINO_PLATFORM.key(), currentPlatform );
         settings.putProperty(ARDUINO_PLATFORM_DIR.key(), new File(platformDir));
-        settings.putProperty(BOARD_ID.key(), boardId);
         settings.putProperty(BOARD_NAME.key(), boardName);
-        settings.putProperty(BOARD_CONFIG_NAVIGATOR.key(), boardConfigNavigator);
+        settings.putProperty(BOARD.key(), board);
         settings.putProperty(COPY_CORE_FILES.key(), copyCoreFiles);
                 
         settings.putProperty(DEVICE_HEADER_PRESENT.key(), false);
@@ -616,7 +623,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
 
     private boolean isPlatformDirectoryValid() {
         Path p = Paths.get( readLocationStringFromField(view.platformLocationField ) );
-        return BoardConfigNavigator.isValidPlatformRootPath(p);
+        return platformFactory.isValidPlatformRootPath(p);
     }
     
     private boolean isBoardValid() {
@@ -704,24 +711,18 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     }
 
     private void loadBoardsToCombo() {
-        try {
-            String currentlySelectedBoardName = (view.boardCombo.getSelectedItem() != null) ? view.boardCombo.getSelectedItem().toString() : null;
-            boardConfigNavigator = new BoardConfigNavigator( currentPlatform );
-            boardIdLookup = boardConfigNavigator.parseBoardNamesToIDsLookup();
-            List<String> boardNames = new ArrayList<>(boardIdLookup.keySet());
-            // Sort the board names list in alphabetical order:
-            Collections.sort(boardNames);
-            // Set up the combo box:
-            DefaultComboBoxModel<String> cbm = new DefaultComboBoxModel<>(boardNames.toArray(new String[boardNames.size()]));
-            view.boardCombo.setModel(cbm);
-            // TODO: Verify whether calling TypeAheadComboBox.enable many times does not have adverse effects
-            TypeAheadComboBox.enable(view.boardCombo);
-            if ( currentlySelectedBoardName != null && boardNames.contains(currentlySelectedBoardName) ) {
-                view.boardCombo.setSelectedItem(currentlySelectedBoardName);
-            }
-            
-        } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
+        String currentlySelectedBoardName = (view.boardCombo.getSelectedItem() != null) ? view.boardCombo.getSelectedItem().toString() : null;
+        boardIdLookup = currentPlatform.getBoardNamesToIDsLookup();
+        List<String> boardNames = new ArrayList<>(boardIdLookup.keySet());
+        // Sort the board names list in alphabetical order:
+        Collections.sort(boardNames);
+        // Set up the combo box:
+        DefaultComboBoxModel<String> cbm = new DefaultComboBoxModel<>(boardNames.toArray(new String[boardNames.size()]));
+        view.boardCombo.setModel(cbm);
+        // TODO: Verify whether calling TypeAheadComboBox.enable many times does not have adverse effects
+        TypeAheadComboBox.enable(view.boardCombo);
+        if ( currentlySelectedBoardName != null && boardNames.contains(currentlySelectedBoardName) ) {
+            view.boardCombo.setSelectedItem(currentlySelectedBoardName);
         }
     }
     
@@ -729,9 +730,11 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         try {
             String boardName = readSelectedValueFromComboBox(view.boardCombo);
             String boardId = boardIdLookup.get(boardName);
-            deviceName = boardConfigNavigator.parseMCU(boardId).flatMap( this::findMPLABDeviceNameForMCU ).orElse(null);                    
+            Board board = currentPlatform.getBoard(boardId);
+            deviceName = board.getValue("build.mcu").flatMap( this::findMPLABDeviceNameForMCU ).orElse("");
             languageToolchain = findMatchingLanguageToolchain(deviceName).orElse(null);
         } catch (IOException ex) {
+            
             Exceptions.printStackTrace(ex);
         }
     }
@@ -758,8 +761,8 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
 
     private void resolvePlatformFromPath() {
         Path p = Paths.get( readLocationStringFromField(view.platformLocationField) );
-        if ( BoardConfigNavigator.isValidPlatformRootPath(p) ) {
-            currentPlatform = BoardConfigNavigator.createPlatformFromRootDirectory(p);
+        if ( platformFactory.isValidPlatformRootPath(p) ) {
+            currentPlatform = platformFactory.createPlatformFromRootDirectory(p);
         }
         loadBoardsToCombo();
     }

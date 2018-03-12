@@ -18,7 +18,6 @@ package com.microchip.mplab.nbide.embedded.arduino.importer;
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.NativeProcessRunner.NO_ERROR_CODE;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;

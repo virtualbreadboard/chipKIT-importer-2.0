@@ -16,7 +16,7 @@
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
-import com.microchip.mplab.nbide.embedded.arduino.importer.drafts.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfiguration;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfigurationBook;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.OptionConfiguration;
@@ -158,9 +158,9 @@ public abstract class ProjectConfigurationImporter {
     
     protected String getCompilerMacros() {
         return new StringBuilder()
-            .append("F_CPU=").append( board.getValue("build.f_cpu") ).append(";")
-            .append("ARDUINO=").append( board.getValue("runtime.ide.version") ).append(";")
-            .append( board.getValue("build.board") ).append(";")
+            .append("F_CPU=").append( board.getValue("build.f_cpu").orElse("") ).append(";")
+            .append("ARDUINO=").append( board.getValue("runtime.ide.version").orElse("") ).append(";")
+            .append( board.getValue("build.board").orElse("") ).append(";")
             // TODO: Verify whether the two MPxxx parameters are really required
 //            .append("MPIDEVER=16777998" ).append(";")
 //            .append("MPIDE=150" ).append(";")
@@ -197,7 +197,7 @@ public abstract class ProjectConfigurationImporter {
     }
     
     protected String getMCU() {
-        return board.getValue("mcu").get();
+        return board.getValue("build.mcu").orElse("");
     }
     
 }

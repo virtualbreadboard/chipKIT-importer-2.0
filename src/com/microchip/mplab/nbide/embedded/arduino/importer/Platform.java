@@ -1,20 +1,50 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class Platform {
+public class Platform extends ArduinoDataSource {
     
+    private static final Logger LOGGER = Logger.getLogger(Platform.class.getName());
+    
+    public static final String PLATFORM_FILENAME = "platform.txt";
+    public static final String BOARDS_FILENAME = "boards.txt";    
+    public static final String VARIANTS_DIRNAME = "variants";
+
     private final String vendor;
     private final String architecture;
-    private final String displayName;
     private final Path rootPath;
+    
+    private Map <String,String> boardsData;
+    private Map <String,Board> boardLookup = new HashMap<>();
 
-    public Platform(String vendor, String architecture, String displayName, Path rootPath) {
+    public Platform(Platform parent, String vendor, String architecture, Path rootPath) {
+        super( parent );
         this.vendor = vendor;
         this.architecture = architecture;
-        this.displayName = displayName;
         this.rootPath = rootPath;
+        try {
+            this.data = parseDataFile( PLATFORM_FILENAME );
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to parse platform file", ex);
+        }
+    }
+
+    public Platform getParent() {
+        return (Platform) parent;
     }
 
     public String getArchitecture() {
@@ -25,17 +55,68 @@ public class Platform {
         return vendor;
     }
 
-    public String getDisplayName() {
-        return displayName;
+    public boolean isPIC32() {
+        return ( architecture != null ) ? architecture.toLowerCase().equals("pic32") : false;
+    }
+    
+    public boolean isAVR() {
+        return ( architecture != null ) ? architecture.toLowerCase().equals("avr") : false;
+    }
+    
+    public boolean isSAMD() {
+        return ( architecture != null ) ? architecture.toLowerCase().equals("samd") : false;
+    }
+    
+    public Optional<String> getDisplayName() {
+        return getValue("name");
     }
 
     public Path getRootPath() {
         return rootPath;
     }
+    
+    public Path getBoardsFilePath() {
+        return rootPath.resolve( BOARDS_FILENAME );
+    }
+    
+    public Path getPlatformFilePath() {
+        return rootPath.resolve( PLATFORM_FILENAME );
+    }
+    
+    public Map<String,String> getBoardNamesToIDsLookup() {
+        checkBoardsData();
+        return boardsData.entrySet()
+            .stream()
+            .filter( e -> e.getKey().contains(".name") )
+            .collect( Collectors.toMap( e -> e.getValue(), e -> e.getKey().split("\\.")[0] ) );
+    }
+    
+    public Set<String> getBoardIDs() throws IOException {
+        checkBoardsData();
+        if ( boardLookup.isEmpty() ) {        
+            return boardsData.entrySet()
+                .stream()
+                .filter( e -> e.getKey().contains(".name") )
+                .map( e -> e.getKey().split("\\.")[0] )
+                .collect( Collectors.toSet() );
+        } else {
+            return boardLookup.keySet();
+        }
+    }
+    
+    public List<Board> getBoards() throws IOException {        
+        if ( boardLookup.isEmpty() ) generateBoardLookup();
+        return new ArrayList<>(boardLookup.values());
+    }
+    
+    public Board getBoard( String boardId ) throws IOException {
+        if ( boardLookup.isEmpty() ) generateBoardLookup();
+        return boardLookup.get( boardId );
+    }
 
     @Override
     public String toString() {
-        return vendor + ":" + architecture;
+        return "Platform{" + "vendor=" + vendor + ", architecture=" + architecture + ", rootPath=" + rootPath + '}';
     }
 
     @Override
@@ -71,6 +152,37 @@ public class Platform {
         return true;
     }
 
+
+    // ***************************************
+    // ********** PRIVATE METHODS ************
+    // ***************************************
+    private void generateBoardLookup() throws IOException {
+        boardLookup = getBoardIDs().stream().map( id -> new Board(this, id, boardsData) ).collect( Collectors.toMap( Board::getBoardId, Function.identity() ) );
+    }
     
+    private void checkBoardsData() {
+        if ( boardsData == null ) try {
+            boardsData = parseDataFile( BOARDS_FILENAME );
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to parse boards file", ex);
+        }
+    }
+    
+    private Map <String,String> parseDataFile( String filename ) throws IOException {
+        try ( Stream <String> lines = Files.lines(rootPath.resolve( filename )) ) {
+            return lines
+            .map( line -> line.trim() )
+            .filter( line -> !line.isEmpty() && !line.startsWith("#") )
+            .map( line -> {
+                int splitIndex = line.indexOf("=");
+                return new String[] { line.substring(0, splitIndex), line.substring(splitIndex+1) };
+            })
+            .collect( Collectors.toMap( 
+                tokens -> tokens[0], 
+                tokens -> tokens.length > 1 ? tokens[1] : "",
+                (val1, val2) -> val2
+            ) );
+        }
+    }
     
 }
