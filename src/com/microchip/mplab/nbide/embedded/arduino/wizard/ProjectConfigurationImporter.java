@@ -86,7 +86,12 @@ public abstract class ProjectConfigurationImporter {
             }
         }
         mainLibraryDirPaths.forEach(path -> {
-            includesBuilder.append(";").append(copyFiles ? projectPath.relativize(path) : path.toAbsolutePath());
+            Path srcPath = path.resolve("src");
+            if ( Files.exists(srcPath) ) {
+                includesBuilder.append(";").append(copyFiles ? projectPath.relativize(srcPath) : srcPath.toAbsolutePath());
+            } else {
+                includesBuilder.append(";").append(copyFiles ? projectPath.relativize(path) : path.toAbsolutePath());
+            }
             Path utilityPath = path.resolve("utility");
             if ( Files.exists(utilityPath) ) {
                 includesBuilder.append(";").append(copyFiles ? projectPath.relativize(utilityPath) : utilityPath.toAbsolutePath());

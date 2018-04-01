@@ -118,7 +118,7 @@ public abstract class AbstractMakeAssistant {
             objectFilenames.add( targetFileName );
             StringBuilder command = new StringBuilder("\t");
             
-            runtimeData.put("source_file", sourceFilePath.toString());
+            runtimeData.put("source_file", mapSourceFilePath(sourceFilePath));
             runtimeData.put("object_file", targetFileName);
             runtimeData.put("includes", buildIncludesSection(board) );
             
@@ -131,6 +131,10 @@ public abstract class AbstractMakeAssistant {
             }
             makefileContents.add( command.toString() );
         });                
+    }
+    
+    protected String mapSourceFilePath( Path sourceFilePath ) {
+        return sourceFilePath.toString();
     }
     
     protected String getToolsPathKey() {

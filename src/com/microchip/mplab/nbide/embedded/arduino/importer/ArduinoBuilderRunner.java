@@ -18,6 +18,7 @@ package com.microchip.mplab.nbide.embedded.arduino.importer;
 import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.arduino.utils.DeletingFileVisitor;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.NativeProcessRunner.NO_ERROR_CODE;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -190,6 +191,9 @@ public class ArduinoBuilderRunner {
                 if (sourceFile != null && !sourceFile.toString().trim().isEmpty()) {
                     String entry = m.get("Includepath").toString();
                     if ( !entry.trim().isEmpty() ) {
+                        if ( entry.endsWith( File.separator+"src") ) {
+                            entry = entry.substring(0, entry.length()-4);
+                        }
                         LOGGER.log( Level.INFO, "Found library path: {0}", entry );
                         libraryPaths.add( Paths.get(entry) );
                     }

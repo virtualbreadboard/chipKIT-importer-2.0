@@ -453,7 +453,7 @@ public class ProjectImporter {
     
     private void buildLibCore() throws IOException, InterruptedException {
         Path coreDirPath = targetProjectDirectoryPath.resolve(CORE_DIRECTORY_NAME);
-        LibCoreBuilder libCoreBuilder = new LibCoreBuilder();
+        LibCoreBuilder libCoreBuilder = new LibCoreBuilder( coreDirPath );
         libCoreBuilder.build( board, arduinoBuilderRunner.getToolFinder(), LOGGER::info );
         Files.copy( libCoreBuilder.getLibCorePath(), coreDirPath.resolve( LibCoreBuilder.LIB_CORE_FILENAME ) );
         Files.copy( libCoreBuilder.getMakefilePath(), coreDirPath.resolve( libCoreBuilder.getMakefileName() ) );        

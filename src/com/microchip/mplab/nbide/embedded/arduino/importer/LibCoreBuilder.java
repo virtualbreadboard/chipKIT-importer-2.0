@@ -15,6 +15,7 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
+import com.microchip.mplab.nbide.embedded.arduino.utils.CopyingFileVisitor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +30,7 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
     public static final String LIB_CORE_NAME = "Core";
     public static final String LIB_CORE_FILENAME = "lib" + LIB_CORE_NAME + ".a";
     
+    private Path sourceDir;
     private Path buildDirPath;
     private Board board;
     private GCCToolFinder toolFinder;
@@ -36,8 +38,12 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
     private String archiveCommand;
     
 
-    public LibCoreBuilder() {        
-        
+    public LibCoreBuilder() {
+        this.sourceDir = null;
+    }
+    
+    public LibCoreBuilder( Path sourceDir ) {
+        this.sourceDir = sourceDir;
     }
 
     @Override
@@ -90,6 +96,9 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
         this.board = board;
         this.toolFinder = toolFinder;
         this.libCorePath = buildDirPath.resolve(LIB_CORE_FILENAME);
+        if ( sourceDir != null ) {
+            copySourceFiles();
+        }
         build( messageConsumer, messageConsumer );
     }
     
@@ -106,11 +115,24 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
             getMakefileContents().add( "\t" + board.getValue("recipe.ar.pattern", runtimeData).get() );
         });
     } 
+
+    @Override
+    protected String mapSourceFilePath(Path sourceFilePath) {
+        if ( sourceDir != null ) {
+            return sourceFilePath.getFileName().toString();
+        } else {
+            return super.mapSourceFilePath(sourceFilePath);
+        }
+    }
     
 
     //*************************************************
     //*************** PRIVATE METHODS *****************
     //*************************************************
+    private void copySourceFiles() throws IOException {
+        Files.walkFileTree(sourceDir, new CopyingFileVisitor(sourceDir, buildDirPath));
+    }
+    
     private static void updateMakefile(Path makefilePath, GCCToolFinder toolFinder) throws IOException {
         throw new UnsupportedOperationException("Updating a Makefile is not supported yet!");
 //        Path compilerPath = toolFinder.findTool( LanguageTool.CCCompiler );
