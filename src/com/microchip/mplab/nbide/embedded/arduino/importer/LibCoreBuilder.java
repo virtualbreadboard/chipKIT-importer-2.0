@@ -125,6 +125,18 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
         }
     }
     
+    @Override
+    protected String buildIncludesSection( Board board ) {
+        if ( sourceDir != null ) {
+//            StringBuilder ret = new StringBuilder();            
+//            ret.append(" \"-I").append(sourceDir.toString()).append("\"");
+//            return ret.toString();
+            return "-I.";
+        } else {
+            return super.buildIncludesSection(board);
+        }
+    }
+    
 
     //*************************************************
     //*************** PRIVATE METHODS *****************
