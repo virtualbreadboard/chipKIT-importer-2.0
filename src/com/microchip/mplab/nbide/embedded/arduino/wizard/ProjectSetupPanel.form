@@ -20,7 +20,6 @@
               <Group type="103" groupAlignment="0" attributes="0">
                   <Group type="102" alignment="0" attributes="0">
                       <Group type="103" groupAlignment="1" attributes="0">
-                          <Component id="encodingLabel" min="-2" max="-2" attributes="0"/>
                           <Component id="projectDirectoryLabel" min="-2" max="-2" attributes="0"/>
                           <Component id="projectNameLabel" min="-2" max="-2" attributes="0"/>
                           <Component id="boardLabel" min="-2" max="-2" attributes="0"/>
@@ -59,7 +58,6 @@
                           </Group>
                           <Component id="projectNameField" alignment="0" max="32767" attributes="0"/>
                           <Component id="projectDirectoryField" alignment="0" max="32767" attributes="0"/>
-                          <Component id="encodingCombo" alignment="0" max="32767" attributes="0"/>
                       </Group>
                   </Group>
                   <Group type="102" attributes="0">
@@ -126,12 +124,7 @@
                   <Component id="projectDirectoryLabel" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="projectDirectoryField" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
-              <EmptySpace max="-2" attributes="0"/>
-              <Group type="103" groupAlignment="3" attributes="0">
-                  <Component id="encodingLabel" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="encodingCombo" alignment="3" min="-2" max="-2" attributes="0"/>
-              </Group>
-              <EmptySpace type="separate" max="-2" attributes="0"/>
+              <EmptySpace min="-2" pref="49" max="-2" attributes="0"/>
               <Component id="infoLabel" min="-2" max="-2" attributes="0"/>
               <EmptySpace type="separate" max="-2" attributes="0"/>
               <Component id="copyDependenciesCheckBox" min="-2" max="-2" attributes="0"/>
@@ -386,28 +379,6 @@
         </Property>
       </Properties>
       <AuxValues>
-        <AuxValue name="JavaCodeGenerator_VariableModifier" type="java.lang.Integer" value="4"/>
-      </AuxValues>
-    </Component>
-    <Component class="javax.swing.JLabel" name="encodingLabel">
-      <Properties>
-        <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-          <ResourceString bundle="com/microchip/mplab/nbide/embedded/arduino/wizard/Bundle.properties" key="ProjectSetupPanel.encodingLabel.text" replaceFormat="org.openide.util.NbBundle.getMessage({sourceFileName}.class, &quot;{key}&quot;)"/>
-        </Property>
-      </Properties>
-      <AuxValues>
-        <AuxValue name="JavaCodeGenerator_VariableLocal" type="java.lang.Boolean" value="true"/>
-        <AuxValue name="JavaCodeGenerator_VariableModifier" type="java.lang.Integer" value="0"/>
-      </AuxValues>
-    </Component>
-    <Component class="javax.swing.JComboBox" name="encodingCombo">
-      <Properties>
-        <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
-          <StringArray count="0"/>
-        </Property>
-      </Properties>
-      <AuxValues>
-        <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;Charset&gt;"/>
         <AuxValue name="JavaCodeGenerator_VariableModifier" type="java.lang.Integer" value="4"/>
       </AuxValues>
     </Component>

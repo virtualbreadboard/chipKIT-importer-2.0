@@ -36,7 +36,6 @@ class ProjectSetupPanel extends JPanel {
         this.control = control;
         setName( NbBundle.getMessage(ProjectSetupPanel.class, "ProjectSetupPanel.title") );
         initComponents();        
-        encodingCombo.setRenderer( new EncodingRenderer() );
         platformCombo.setRenderer( new PlatformRenderer() );
     }
 
@@ -67,8 +66,6 @@ class ProjectSetupPanel extends JPanel {
         projectNameField = new javax.swing.JTextField();
         javax.swing.JLabel projectDirectoryLabel = new javax.swing.JLabel();
         projectDirectoryField = new javax.swing.JTextField();
-        javax.swing.JLabel encodingLabel = new javax.swing.JLabel();
-        encodingCombo = new javax.swing.JComboBox<>();
         javax.swing.JLabel infoLabel = new javax.swing.JLabel();
         copyDependenciesCheckBox = new javax.swing.JCheckBox();
         overwriteCheckBox = new javax.swing.JCheckBox();
@@ -155,8 +152,6 @@ class ProjectSetupPanel extends JPanel {
         projectDirectoryField.setText(org.openide.util.NbBundle.getMessage(ProjectSetupPanel.class, "ProjectSetupPanel.projectDirectoryField.text")); // NOI18N
         projectDirectoryField.setToolTipText(org.openide.util.NbBundle.getMessage(ProjectSetupPanel.class, "ProjectSetupPanel.projectDirectoryField.toolTipText")); // NOI18N
 
-        org.openide.awt.Mnemonics.setLocalizedText(encodingLabel, org.openide.util.NbBundle.getMessage(ProjectSetupPanel.class, "ProjectSetupPanel.encodingLabel.text")); // NOI18N
-
         infoLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/microchip/mplab/nbide/embedded/arduino/wizard/info_48.png"))); // NOI18N
         org.openide.awt.Mnemonics.setLocalizedText(infoLabel, org.openide.util.NbBundle.getMessage(ProjectSetupPanel.class, "ProjectSetupPanel.infoLabel.text")); // NOI18N
 
@@ -172,7 +167,6 @@ class ProjectSetupPanel extends JPanel {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(encodingLabel)
                             .addComponent(projectDirectoryLabel)
                             .addComponent(projectNameLabel)
                             .addComponent(boardLabel)
@@ -203,8 +197,7 @@ class ProjectSetupPanel extends JPanel {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(platformLocationButton))
                             .addComponent(projectNameField)
-                            .addComponent(projectDirectoryField)
-                            .addComponent(encodingCombo, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                            .addComponent(projectDirectoryField)))
                     .addGroup(layout.createSequentialGroup()
                         .addContainerGap()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -254,11 +247,7 @@ class ProjectSetupPanel extends JPanel {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(projectDirectoryLabel)
                     .addComponent(projectDirectoryField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(encodingLabel)
-                    .addComponent(encodingCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
+                .addGap(49, 49, 49)
                 .addComponent(infoLabel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(copyDependenciesCheckBox)
@@ -304,7 +293,6 @@ class ProjectSetupPanel extends JPanel {
     protected javax.swing.JTextField arduinoLocationField;
     protected javax.swing.JComboBox<String> boardCombo;
     protected javax.swing.JCheckBox copyDependenciesCheckBox;
-    protected javax.swing.JComboBox<Charset> encodingCombo;
     protected javax.swing.JCheckBox overwriteCheckBox;
     protected javax.swing.JComboBox<Platform> platformCombo;
     protected javax.swing.JTextField platformLocationField;

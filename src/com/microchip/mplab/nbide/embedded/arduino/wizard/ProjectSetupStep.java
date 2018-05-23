@@ -24,6 +24,7 @@ import com.microchip.mplab.mdbcore.MessageMediator.Message;
 import com.microchip.mplab.mdbcore.MessageMediator.MessageMediator;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
+import com.microchip.mplab.nbide.embedded.api.LanguageToolchainMeta;
 import com.microchip.mplab.nbide.embedded.api.ui.TypeAheadComboBox;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
@@ -32,7 +33,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -62,9 +62,6 @@ import com.microchip.mplab.nbide.embedded.arduino.utils.ArduinoProjectFileFilter
 import com.microchip.mplab.nbide.embedded.makeproject.ui.wizards.WizardProjectConfiguration;
 import java.awt.event.FocusEvent;
 import java.awt.event.ItemEvent;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.IllegalCharsetNameException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -75,8 +72,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.filechooser.FileFilter;
@@ -109,7 +104,6 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     public Component getComponent() {
         if (view == null) {
             view = new ProjectSetupPanel(this);
-            view.encodingCombo.setModel( new EncodingModel(NbPreferences.root().get("DEFAULT_CHARSET", "ISO-8859-1")) );
             try {
                 allPlatforms = new ArrayList<>(platformFactory.getAllPlatforms(arduinoConfig.getSettingsPath()));
                 Collections.sort(allPlatforms, (Platform p1, Platform p2) -> p1.getDisplayName().orElse("").compareTo(p2.getDisplayName().orElse("")));
@@ -328,12 +322,6 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         if (boardName != null) {
             view.boardCombo.setSelectedItem(boardName);
         }
-        
-        // Encoding:
-        Object encodingCharset = wizardDescriptor.getProperty(PROJECT_ENCODING.key());
-        if (encodingCharset != null) {
-            view.encodingCombo.setSelectedItem( encodingCharset );
-        }
 
         // Copy all dependencies:
         Object copyDependencies = wizardDescriptor.getProperty(COPY_CORE_FILES.key());
@@ -374,12 +362,14 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         settings.putProperty(PLUGIN_BOARD_PRESENT.key(), false);
         WizardProjectConfiguration.storeDeviceHeaderPlugin(settings, deviceName);
         
-        settings.putProperty(LANGUAGE_TOOL_META_ID.key(), languageToolchain.getMeta().getID());
+        Optional.of( languageToolchain )
+                .map( LanguageToolchain::getMeta )
+                .map( LanguageToolchainMeta::getID )
+                .ifPresent( id -> settings.putProperty(LANGUAGE_TOOL_META_ID.key(), id) );
 
         settings.putProperty(PROJECT_DIR.key(), new File(targetDir));
         settings.putProperty(PROJECT_NAME.key(), projectName);
         settings.putProperty(MAKE_FILENAME.key(), MAKEFILE_NAME);
-        settings.putProperty(PROJECT_ENCODING.key(), ((Charset) view.encodingCombo.getSelectedItem()));
 
         File projectsDir = new File(targetLocation);
         if (projectsDir.isDirectory()) {
@@ -443,7 +433,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     }
 
     void platformLocationButtonActionPerformed(ActionEvent evt) {
-        showDirectoryChooser(view.platformLocationField, "DLG_ChipKitCoreDirectory" );
+        showDirectoryChooser(view.platformLocationField, "DLG_ArduinoCoreDirectory" );
         onPlatformLocationChanged();
     }
     
@@ -660,8 +650,8 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             File file = File.createTempFile(projectName + "dummy", "");
             ok = true;
             file.delete();
-        } catch (java.lang.Exception ex) {
-            // failed to create
+        } catch (Exception ex) {
+            Exceptions.printStackTrace(ex);
         }
 
         return ok;
@@ -684,6 +674,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private void onPlatformChanged() {        
         loadBoardsToCombo();
         view.platformLocationField.setText( currentPlatform.getRootPath().toString() );
+        updateDeviceAndToolchain();
         fireChangeEvent();
     }
     
@@ -785,60 +776,6 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         } else {
             return Optional.empty();
         }
-    }
-
-    
-    private static class EncodingModel extends DefaultComboBoxModel <Charset> {
-
-        EncodingModel(String originalEncoding) {
-            Charset defEnc = null;
-            for (Charset c : Charset.availableCharsets().values()) {
-                if (c.name().equals(originalEncoding)) {
-                    defEnc = c;
-                }
-                addElement(c);
-            }
-            if (defEnc == null) {
-                //Create artificial Charset to keep the original value
-                //May happen when the project was set up on the platform
-                //which supports more encodings
-                try {
-                    defEnc = new UnknownCharset(originalEncoding);
-                    addElement(defEnc);
-                } catch (IllegalCharsetNameException e) {
-                    //The source.encoding property is completely broken
-                    Logger.getLogger(this.getClass().getName()).log(Level.INFO, "IllegalCharsetName: {0}", originalEncoding);
-                }
-            }
-            if (defEnc == null) {
-                defEnc = Charset.defaultCharset();
-            }
-            setSelectedItem(defEnc);
-        }
-        
-    }
-
-    private static class UnknownCharset extends Charset {
-
-        UnknownCharset(String name) {
-            super(name, new String[0]);
-        }
-
-        @Override
-        public boolean contains(Charset c) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public CharsetDecoder newDecoder() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public CharsetEncoder newEncoder() {
-            throw new UnsupportedOperationException();
-        }
-        
     }
     
     private static class PlatformComboModel extends DefaultComboBoxModel<Platform> {
