@@ -15,28 +15,73 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 final class LinuxArduinoConfig extends ArduinoConfig {
 
+    private static final Logger LOGGER = Logger.getLogger(LinuxArduinoConfig.class.getName());
+    
     LinuxArduinoConfig() {};
     
+    
+    // TODO: Fix error handling
     @Override
     public Path getSettingsPath() {
         Path userHomePath = Paths.get( System.getProperty("user.home") );
-        return userHomePath.resolve(".arduino15");
+        Path arduinoSettingsPath = userHomePath.resolve(".arduino15");
+        if ( Files.exists(arduinoSettingsPath) ) {
+            return arduinoSettingsPath;
+        } else {
+            try {
+                return findInArduinoSnapDirectory(userHomePath, ".arduino15").orElse(null);
+            } catch (IOException ex) {
+                LOGGER.log(Level.SEVERE, "Failed to find Arduino's user settings directory", ex);
+                return null;
+            }
+        }
     }
 
     @Override
     public Path getSketchPath() {
         Path userHomePath = Paths.get( System.getProperty("user.home") );
-        return userHomePath.resolve("Arduino");
+        Path userArduinoPath = userHomePath.resolve("Arduino");
+        if ( Files.exists(userArduinoPath) ) {
+            return userArduinoPath;
+        } else {
+            try {
+                return findInArduinoSnapDirectory(userHomePath, "Arduino").orElse(null);
+            } catch (IOException ex) {
+                LOGGER.log(Level.SEVERE, "Failed to find Arduino's user sketch directory", ex);
+                return null;
+            }
+        }
     }
 
     @Override
     public Path findArduinoBuilderPath(Path arduinoInstallPath) {
         return arduinoInstallPath.resolve("arduino-builder");
+    }
+    
+    private Optional<Path> findInArduinoSnapDirectory( Path userHomePath, String fileName ) throws IOException {
+        Path snapPath = userHomePath.resolve("snap");
+        if ( Files.exists(snapPath) ) {
+            return Files
+                .list(snapPath)
+                .filter( p -> p.getFileName().toString().contains("arduino") )
+                .map( p -> p.resolve("current") )
+                .filter( p -> Files.exists(p) )
+                .findFirst()
+                .map( p -> p.resolve( fileName ) )
+                .filter( p -> Files.exists(p) );
+        } else {
+            return Optional.empty();
+        }
     }
     
 }

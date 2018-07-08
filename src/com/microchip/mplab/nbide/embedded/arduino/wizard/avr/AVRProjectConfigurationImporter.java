@@ -45,7 +45,7 @@ public final class AVRProjectConfigurationImporter extends ProjectConfigurationI
         String preprocessorMacros = getCompilerMacros();
         String ldAppendOptions = getBoard().getValue("build.mcu").map(mcu -> "-mmcu=" + mcu).orElse("");
         String cAppendOptions = String.join(" ", getExtraOptionsC());
-
+       
         getProjectDescriptor().getConfs().getConfigurtions().forEach(c -> {
             MakeConfiguration mc = (MakeConfiguration) c;
             setAuxOptionValue(mc, "AVR-Global", "common-include-directories", includeDirectories);

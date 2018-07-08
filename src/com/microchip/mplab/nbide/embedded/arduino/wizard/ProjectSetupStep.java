@@ -27,6 +27,8 @@ import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchainMeta;
 import com.microchip.mplab.nbide.embedded.api.ui.TypeAheadComboBox;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
+import static com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig.ROOT_PLATFORM_ARCH;
+import static com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig.ROOT_PLATFORM_VENDOR;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -287,7 +289,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             } else {
                 try {
                     // Default platform
-                    currentPlatform = new PlatformFactory().createPlatform(arduinoConfig.getSettingsPath(), "arduino", "avr");
+                    currentPlatform = new PlatformFactory().createPlatform(arduinoConfig.getSettingsPath(), ROOT_PLATFORM_VENDOR, ROOT_PLATFORM_ARCH);
                 } catch (IOException ex) {
                     Exceptions.printStackTrace(ex);
                 }
@@ -753,7 +755,11 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private void resolvePlatformFromPath() {
         Path p = Paths.get( readLocationStringFromField(view.platformLocationField) );
         if ( platformFactory.isValidPlatformRootPath(p) ) {
-            currentPlatform = platformFactory.createPlatformFromRootDirectory(p);
+            try {
+                currentPlatform = platformFactory.createPlatformFromRootDirectory(p);
+            } catch (IOException ex) {
+                Exceptions.printStackTrace(ex);
+            }
         }
         loadBoardsToCombo();
     }

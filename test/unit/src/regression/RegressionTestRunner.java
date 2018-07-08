@@ -1,7 +1,7 @@
 package regression;
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
-import utils.Utilities;
+import utils.TestUtilities;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -37,7 +37,7 @@ public class RegressionTestRunner extends BlockJUnit4ClassRunner {
         if ( config == null || config.getPlatformTestConfigs() == null ) {
             try {
                 loadConfigFile();
-                Utilities.clearDirectory(config.getTestAreaPath());
+                TestUtilities.clearDirectory(config.getTestAreaPath());
             } catch (Exception ex) {
                 errors.add(ex);
             }

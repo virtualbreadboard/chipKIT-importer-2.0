@@ -1,11 +1,12 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer.pic32;
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
+import java.io.IOException;
 import java.nio.file.Path;
 
 public class PIC32Platform extends Platform {
     
-    public PIC32Platform(Platform parent, String vendor, Path rootPath) {
+    public PIC32Platform(Platform parent, String vendor, Path rootPath) throws IOException {
         super(parent, vendor, "pic32", rootPath );
         putValue("compiler.c.cmd", "xc32-gcc");
         putValue("compiler.c.elf.cmd", "xc32-g++");

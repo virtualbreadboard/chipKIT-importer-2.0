@@ -92,7 +92,7 @@ public abstract class ArduinoConfig {
     
     public Optional <Path> getDefaultArduinoPlatformPath() {
         return findInPreferences( line -> line.split("=")[0].trim().endsWith("hardwarepath") )
-            .map( hardwarePath -> Paths.get( hardwarePath, "arduino", "avr" ) );
+            .map( hardwarePath -> Paths.get( hardwarePath, ROOT_PLATFORM_VENDOR, ROOT_PLATFORM_ARCH ) );
     }
 
     public Path findToolsBuilderPath(Path arduinoInstallPath) {

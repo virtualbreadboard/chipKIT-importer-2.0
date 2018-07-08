@@ -301,7 +301,11 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         }
 
         // Add source files
-        Folder sourceFolder = newProjectDescriptor.getLogicalFolders().findFolderByName(MakeConfigurationBook.SOURCE_FILES_FOLDER);
+        Folder sourceFolder = newProjectDescriptor.getLogicalFolders().addNewFolder(ProjectImporter.SOURCE_FILES_DIRECTORY_NAME,
+            "Source",
+            true,
+            Folder.Kind.SOURCE_LOGICAL_FOLDER
+        );
         if (copyFiles) {
             importer.getSourceFilePaths().forEach((p) -> {            
                 addFileToFolder(sourceFolder, p, importer.getTargetSourceFilesDirectoryPath());

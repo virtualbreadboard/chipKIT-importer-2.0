@@ -31,16 +31,12 @@ public class Platform extends ArduinoDataSource {
     private Map <String,String> boardsData;
     private Map <String,Board> boardLookup = new HashMap<>();
 
-    public Platform(Platform parent, String vendor, String architecture, Path rootPath) {
+    public Platform(Platform parent, String vendor, String architecture, Path rootPath) throws IOException {
         super( parent );
         this.vendor = vendor;
         this.architecture = architecture;
         this.rootPath = rootPath;
-        try {
-            this.data = parseDataFile( PLATFORM_FILENAME );
-        } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to parse platform file", ex);
-        }
+        this.data = parseDataFile( PLATFORM_FILENAME );
     }
 
     public Platform getParent() {
@@ -171,17 +167,17 @@ public class Platform extends ArduinoDataSource {
     private Map <String,String> parseDataFile( String filename ) throws IOException {
         try ( Stream <String> lines = Files.lines(rootPath.resolve( filename )) ) {
             return lines
-            .map( line -> line.trim() )
-            .filter( line -> !line.isEmpty() && !line.startsWith("#") )
-            .map( line -> {
-                int splitIndex = line.indexOf("=");
-                return new String[] { line.substring(0, splitIndex), line.substring(splitIndex+1) };
-            })
-            .collect( Collectors.toMap( 
-                tokens -> tokens[0], 
-                tokens -> tokens.length > 1 ? tokens[1] : "",
-                (val1, val2) -> val2
-            ) );
+                .map( line -> line.trim() )
+                .filter( line -> !line.isEmpty() && !line.startsWith("#") )
+                .map( line -> {
+                    int splitIndex = line.indexOf("=");
+                    return new String[] { line.substring(0, splitIndex), line.substring(splitIndex+1) };
+                })
+                .collect( Collectors.toMap( 
+                    tokens -> tokens[0], 
+                    tokens -> tokens.length > 1 ? tokens[1] : "",
+                    (val1, val2) -> val2
+                ) );
         }
     }
     
