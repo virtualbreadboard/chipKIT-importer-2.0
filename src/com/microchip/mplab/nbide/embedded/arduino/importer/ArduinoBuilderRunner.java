@@ -93,7 +93,7 @@ public class ArduinoBuilderRunner {
             }
             
             // Run Arduino-Builder
-            int errorCode = runArduinoBuilder(board, arduinoConfig, arduinoInstallPath, inoFilePath);
+            int errorCode = runArduinoBuilder(board, inoFilePath);
 
             if (errorCode == NO_ERROR_CODE) {
                 // Find library paths
@@ -143,8 +143,10 @@ public class ArduinoBuilderRunner {
         mainLibraryPaths = null;
     }
 
-    private int runArduinoBuilder( Board board, ArduinoConfig arduinoConfig, Path arduinoInstallPath, Path inoFilePath ) throws IOException, InterruptedException {
-        final String packagesPath = arduinoConfig.getPackagesPath().toString();
+    private int runArduinoBuilder( Board board, Path inoFilePath ) throws IOException, InterruptedException {
+        final Path packagesPath = arduinoConfig.getPackagesPath();
+        final Path hardwarePath = arduinoConfig.findHardwarePath().get();
+        final boolean packagesDirExists = Files.exists(packagesPath);
         final String fqbn = board.getValue("fqbn").get();
         final Path librariesDirPath = findSketchbookLibrariesDirectoryPath(arduinoConfig, inoFilePath);        
         
@@ -154,10 +156,10 @@ public class ArduinoBuilderRunner {
             arduinoConfig.findArduinoBuilderPath(arduinoInstallPath).toString(),
             "-preprocess",
             "-logger=human",
-            "-hardware", arduinoConfig.findHardwarePath(arduinoInstallPath).toString(),
-            "-hardware", packagesPath,
+            "-hardware", arduinoConfig.findHardwarePath().get().toString(),
+//            packagesDirExists ? "-hardware" : "", packagesDirExists ? packagesPath.toString() : "",
             "-tools", arduinoConfig.findToolsBuilderPath(arduinoInstallPath).toString(),
-            "-tools", packagesPath,
+            "-tools", arduinoConfig.findToolsPath().map( Path::toString ).orElse(""),
             "-built-in-libraries", arduinoConfig.findBuiltInLibrariesPath(arduinoInstallPath).toString(),
             "-libraries", librariesDirPath.toString(), 
             "-fqbn=" + fqbn,

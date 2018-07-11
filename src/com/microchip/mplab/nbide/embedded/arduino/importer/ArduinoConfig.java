@@ -52,14 +52,17 @@ public abstract class ArduinoConfig {
     public abstract Path getSketchPath();        
     public abstract Path findArduinoBuilderPath( Path arduinoInstallPath );
     
+    // TODO: Change return type to Optional
     public Path findUserLibrariesPath() {
         return getSketchPath().resolve("libraries");
     }
         
-    public Path getPackagesPath() {        
-        return getSettingsPath().resolve("packages");                
+    // TODO: Change return type to Optional
+    public Path getPackagesPath() {
+        return getSettingsPath().resolve("packages");
     }
     
+    // TODO: Change return type to Optional
     public Path getPlatformRootPath( Platform platform ) {
         return getPackagesPath().resolve( platform.getVendor() );
     }
@@ -69,8 +72,8 @@ public abstract class ArduinoConfig {
         return Files.exists(p);
     }
 
-    public Path findHardwarePath(Path arduinoInstallPath) {
-        return arduinoInstallPath.resolve("hardware");
+    public Optional<Path> findHardwarePath() {
+        return findInPreferences( line -> line.split("=")[0].trim().endsWith("hardwarepath") ).map( Paths::get );
     }
     
     public Optional <String> findInPreferences( Predicate<String> predicate ) {
@@ -95,10 +98,16 @@ public abstract class ArduinoConfig {
             .map( hardwarePath -> Paths.get( hardwarePath, ROOT_PLATFORM_VENDOR, ROOT_PLATFORM_ARCH ) );
     }
 
+    public Optional<Path> findToolsPath() {
+        return findHardwarePath().map( hardwarePath -> hardwarePath.resolve("tools").resolve(ROOT_PLATFORM_ARCH) );
+    }
+    
+    // TODO: Change return type to Optional
     public Path findToolsBuilderPath(Path arduinoInstallPath) {
         return arduinoInstallPath.resolve("tools-builder");
     }
 
+    // TODO: Change return type to Optional
     public Path findBuiltInLibrariesPath(Path arduinoInstallPath) {
         return arduinoInstallPath.resolve("libraries");
     }
