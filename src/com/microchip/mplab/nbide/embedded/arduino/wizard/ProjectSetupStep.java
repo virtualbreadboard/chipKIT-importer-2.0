@@ -22,6 +22,7 @@ import com.microchip.mplab.mdbcore.MessageMediator.ActionList;
 import com.microchip.mplab.mdbcore.MessageMediator.DialogBoxType;
 import com.microchip.mplab.mdbcore.MessageMediator.Message;
 import com.microchip.mplab.mdbcore.MessageMediator.MessageMediator;
+import com.microchip.mplab.nbide.embedded.api.LanguageTool;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
 import com.microchip.mplab.nbide.embedded.api.LanguageToolchainMeta;
@@ -764,6 +765,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         loadBoardsToCombo();
     }
 
+    // TODO: Move this logic to separate class
     private Optional <String> findMPLABDeviceNameForMCU(String mcu) {
         String lowerCaseMCU = mcu.toLowerCase();
         try {
@@ -776,16 +778,20 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         return Optional.empty();
     }
     
+    // TODO: Move this logic to separate class
     private Optional <LanguageToolchain> findMatchingLanguageToolchain( String device ) {
         if ( device != null ) {
-            return LanguageToolchainManager.getDefault().getToolchains().stream().filter(tc -> tc.getSupport(device).isSupported()).findAny();
+            return LanguageToolchainManager.getDefault().getToolchains()
+                .stream()
+                .filter(tc -> tc.getSupport(device).isSupported())
+                .filter(tc -> tc.getTool(LanguageTool.CCCompiler) != null)
+                .findAny();
         } else {
             return Optional.empty();
         }
     }
     
     private static class PlatformComboModel extends DefaultComboBoxModel<Platform> {
-
         PlatformComboModel( List<Platform> platforms ) {
             super( platforms.toArray( new Platform[platforms.size()] ) );
         }
