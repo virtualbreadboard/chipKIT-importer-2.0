@@ -143,6 +143,7 @@ public class ArduinoBuilderRunner {
         mainLibraryPaths = null;
     }
 
+    // TODO: Improve handling of non-standard scenarios (missing directories etc)
     private int runArduinoBuilder( Board board, Path inoFilePath ) throws IOException, InterruptedException {
         final Path packagesPath = arduinoConfig.getPackagesPath();
         final Path hardwarePath = arduinoConfig.findHardwarePath().get();
@@ -150,23 +151,42 @@ public class ArduinoBuilderRunner {
         final String fqbn = board.getValue("fqbn").get();
         final Path librariesDirPath = findSketchbookLibrariesDirectoryPath(arduinoConfig, inoFilePath);        
         
-        // Run preprocess command
-        return nativeProcessRunner.runNativeProcess(
-            preprocessDirPath,
-            arduinoConfig.findArduinoBuilderPath(arduinoInstallPath).toString(),
-            "-preprocess",
-            "-logger=human",
-            "-hardware", arduinoConfig.findHardwarePath().get().toString(),
-//            packagesDirExists ? "-hardware" : "", packagesDirExists ? packagesPath.toString() : "",
-            "-tools", arduinoConfig.findToolsBuilderPath(arduinoInstallPath).toString(),
-            "-tools", arduinoConfig.findToolsPath().map( Path::toString ).orElse(""),
-            "-built-in-libraries", arduinoConfig.findBuiltInLibrariesPath(arduinoInstallPath).toString(),
-            "-libraries", librariesDirPath.toString(), 
-            "-fqbn=" + fqbn,
-            "-build-path", ".",
-            "-verbose",
-            inoFilePath.toAbsolutePath().toString()
-        );
+        // Run preprocess command        
+        if ( packagesDirExists ) {
+            return nativeProcessRunner.runNativeProcess(
+                preprocessDirPath,
+                arduinoConfig.findArduinoBuilderPath(arduinoInstallPath).toString(),
+                "-preprocess",
+                "-logger=human",
+                "-hardware", hardwarePath.toString(),
+                "-hardware", packagesPath.toString(),
+                "-tools", arduinoConfig.findToolsBuilderPath(arduinoInstallPath).toString(),
+                "-tools", arduinoConfig.findToolsPath().map( Path::toString ).orElse(""),
+                "-tools", packagesPath.toString(),
+                "-built-in-libraries", arduinoConfig.findBuiltInLibrariesPath(arduinoInstallPath).toString(),
+                "-libraries", librariesDirPath.toString(), 
+                "-fqbn=" + fqbn,
+                "-build-path", ".",
+                "-verbose",
+                inoFilePath.toAbsolutePath().toString()
+            );
+        } else {
+            return nativeProcessRunner.runNativeProcess(
+                preprocessDirPath,
+                arduinoConfig.findArduinoBuilderPath(arduinoInstallPath).toString(),
+                "-preprocess",
+                "-logger=human",
+                "-hardware", hardwarePath.toString(),
+                "-tools", arduinoConfig.findToolsBuilderPath(arduinoInstallPath).toString(),
+                "-tools", arduinoConfig.findToolsPath().map( Path::toString ).orElse(""),
+                "-built-in-libraries", arduinoConfig.findBuiltInLibrariesPath(arduinoInstallPath).toString(),
+                "-libraries", librariesDirPath.toString(), 
+                "-fqbn=" + fqbn,
+                "-build-path", ".",
+                "-verbose",
+                inoFilePath.toAbsolutePath().toString()
+            );
+        }
     }
     
     private Path findSketchbookLibrariesDirectoryPath( ArduinoConfig arduinoConfig, Path inoFilePath ) {
