@@ -21,6 +21,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.io.ByteArrayOutputStream;
@@ -46,8 +47,8 @@ class ProgressTrackingPanel extends JPanel {
         setPreferredSize( new Dimension(662, 432) );
     }
     
-    void onImportSuccess( boolean multiConfigBoard ) {
-        showContents( createImportSuccessfulPane( multiConfigBoard ) );
+    void onImportSuccess() {
+        showContents( createImportSuccessfulPane() );
     }
     
     void onImportFailed( Exception cause ) {
@@ -78,14 +79,25 @@ class ProgressTrackingPanel extends JPanel {
         return p1;
     }
     
-    private JComponent createImportSuccessfulPane( boolean multiConfigBoard ) {
-        JLabel textLabel = new JLabel( NbBundle.getMessage( 
-            ProgressTrackingPanel.class, multiConfigBoard ? 
-                "ProgressTrackingPanel.importSuccessfulMessageMultiConf" : 
-                "ProgressTrackingPanel.importSuccessfulMessageSingleConf" 
+    private JComponent createImportSuccessfulPane() {
+        JLabel mainMessageLabel = new JLabel( NbBundle.getMessage( 
+            ProgressTrackingPanel.class, "ProgressTrackingPanel.importSuccessfulMessage"
         ));
-        textLabel.setPreferredSize( new Dimension(600,400) );
-        return textLabel;
+        mainMessageLabel.setAlignmentX(0.5f);
+        
+        JLabel wizardWillCloseMessageLabel = new JLabel( NbBundle.getMessage( 
+            ProgressTrackingPanel.class, "ProgressTrackingPanel.wizardWillCloseMessage" 
+        ) );
+        wizardWillCloseMessageLabel.setHorizontalAlignment( JLabel.CENTER );
+        wizardWillCloseMessageLabel.setAlignmentX(0.5f);
+        
+        JPanel p0 = new JPanel();
+        p0.setLayout(new BoxLayout(p0, BoxLayout.PAGE_AXIS));
+        p0.add(mainMessageLabel);
+        p0.add(Box.createVerticalStrut(10));
+        p0.add(wizardWillCloseMessageLabel);
+        
+        return p0;
     }
     
     private JComponent createImportFailedPane( Exception cause ) {

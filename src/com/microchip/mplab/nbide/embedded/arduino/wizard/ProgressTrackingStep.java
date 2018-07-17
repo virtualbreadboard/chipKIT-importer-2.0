@@ -16,11 +16,14 @@
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
 import java.awt.Component;
+import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import org.openide.WizardDescriptor;
@@ -56,14 +59,14 @@ public class ProgressTrackingStep implements WizardDescriptor.Panel<WizardDescri
     @Override
     public void readSettings(WizardDescriptor wizardDescriptor) {        
         this.wizardDescriptor = wizardDescriptor;
-        this.wizardDescriptor.setOptions( new Object[] { WizardDescriptor.FINISH_OPTION } );
+        this.wizardDescriptor.setOptions( new Object[] { WizardDescriptor.FINISH_OPTION } );        
         
         importWorker.addPropertyChangeListener( (PropertyChangeEvent evt) -> {
             if ( "state".equals( evt.getPropertyName() ) && evt.getNewValue() == SwingWorker.StateValue.DONE ) {
                 if ( importWorker.hasFailed() ) {                    
                     onImportFailed( importWorker.getException() );
                 } else {
-                    onImportSuccess( importWorker.isMultiConfigBoard() );
+                    onImportSuccess();
                 }
             }
         });
@@ -98,10 +101,15 @@ public class ProgressTrackingStep implements WizardDescriptor.Panel<WizardDescri
     //**********************************************
     //************** PRIVATE METHODS ***************
     //**********************************************
-    private void onImportSuccess( boolean multiConfigBoard ) {
-        view.onImportSuccess( multiConfigBoard );
+    private void onImportSuccess() {
+        view.onImportSuccess();
         isDone = true;
         fireChangeEvent();
+        Timer timer = new Timer(2000, (evt) -> {
+            wizardDescriptor.doFinishClick();
+        });
+        timer.setRepeats(false);
+        timer.start();
     }
     
     private void onImportFailed( Exception ex ) {

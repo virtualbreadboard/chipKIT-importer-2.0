@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class ProjectConfigurationImporter {
@@ -123,6 +125,7 @@ public abstract class ProjectConfigurationImporter {
         parseOptions(optionSet, board.getValue("compiler.c.extra_flags"));
         parseOptions(optionSet, board.getValue("build.extra_flags"));
         removeRedundantCompilerOptions(optionSet);
+        removeIllegalCharacters(optionSet);
         return optionSet;
     }
     
@@ -138,6 +141,7 @@ public abstract class ProjectConfigurationImporter {
         parseOptions(optionSet, board.getValue("compiler.c.extra_flags"));
         parseOptions(optionSet, board.getValue("build.extra_flags"));
         removeRedundantCompilerOptions(optionSet);
+        removeIllegalCharacters(optionSet);
         return optionSet;
     }
     
@@ -147,6 +151,7 @@ public abstract class ProjectConfigurationImporter {
         parseOptions(optionSet, board.getValue("compiler.cpp.extra_flags"));        
         parseOptions(optionSet, board.getValue("build.extra_flags"));
         removeRedundantCompilerOptions(optionSet);        
+        removeIllegalCharacters(optionSet);
         optionSet.add("-std=gnu++11");
         return optionSet;
     }
@@ -178,10 +183,29 @@ public abstract class ProjectConfigurationImporter {
         Iterator <String> iter = optionSet.iterator();
         while ( iter.hasNext() ) {
             String option = iter.next();
-            if ( option.equals("-g") || option.equals("-c") || option.equals("-w") || option.startsWith("-O") ) {
+            if ( option.trim().isEmpty() || option.equals("-g") || option.equals("-c") || option.equals("-w") || option.startsWith("-O") ) {
                 iter.remove();
             }
         }
+    }
+    
+    protected void removeIllegalCharacters( Set <String> optionSet ) {
+        List <String> fixedItems = optionSet
+            .stream()
+            .map( option -> option.trim() )
+            .map( trimmedOption -> {
+                // Remove single quotes like in: '-DUSB_MANUFACTURER="Adafruit"'
+                if ( trimmedOption.startsWith("'") ) {
+                    trimmedOption = trimmedOption.substring(1);
+                }
+                if ( trimmedOption.endsWith("'") ) {
+                    trimmedOption = trimmedOption.substring(0, trimmedOption.length()-1);
+                }
+                return trimmedOption;
+            }).collect( Collectors.toList() );
+        
+        optionSet.clear();
+        optionSet.addAll(fixedItems);
     }
     
     protected void removeRedundantLinkerOptions( Set <String> optionSet ) {
