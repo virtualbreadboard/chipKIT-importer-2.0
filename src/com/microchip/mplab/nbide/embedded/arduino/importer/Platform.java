@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,6 +15,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,8 +31,9 @@ public class Platform extends ArduinoDataSource {
     private final String architecture;
     private final Path rootPath;
     
+    private final Set <BoardId> boardIds = new HashSet<>();
     private Map <String,String> boardsData;
-    private Map <String,Board> boardLookup = new HashMap<>();
+    private Map <BoardId,Board> boardLookup = new HashMap<>();
 
     public Platform(Platform parent, String vendor, String architecture, Path rootPath) throws IOException {
         super( parent );
@@ -79,24 +83,45 @@ public class Platform extends ArduinoDataSource {
         return rootPath.resolve( PLATFORM_FILENAME );
     }
     
-    public Map<String,String> getBoardNamesToIDsLookup() {
+    public Map<String,BoardId> getBoardNamesToIDsLookup() {
         checkBoardsData();
-        return boardsData.entrySet()
-            .stream()
-            .filter( e -> e.getKey().contains(".name") )
-            .collect( Collectors.toMap( e -> e.getValue(), e -> e.getKey().split("\\.")[0] ) );
+        
+        Map <String,BoardId> ret = new HashMap<>();
+        getBoardIDs().stream()
+            .forEach(id -> {
+                String baseName = boardsData.get(id.getBoard() + ".name" );
+                if ( id.hasCpu() ) {
+                    String fullName = baseName + " - " + boardsData.get( id.getBoard() + ".menu.cpu." + id.getCpu() );
+                    ret.put(fullName, id);
+                } else {
+                    ret.put(baseName, id);
+                }
+            });
+        
+        return ret;
     }
     
-    public Set<String> getBoardIDs() throws IOException {
+    public Set<BoardId> getBoardIDs() {
         checkBoardsData();
-        if ( boardLookup.isEmpty() ) {        
-            return boardsData.entrySet()
-                .stream()
-                .filter( e -> e.getKey().contains(".name") )
-                .map( e -> e.getKey().split("\\.")[0] )
-                .collect( Collectors.toSet() );
+        if ( boardIds.isEmpty() ) {
+            boardsData.keySet().stream()
+                .filter( key -> key.contains(".name") ) // e.g nano.name
+                .map( nameKey -> nameKey.split("\\.")[0] )  // e.g nano
+                .forEach( name -> {
+                    long variantsCount = findMatchingKeys( boardsData, name + ".menu.cpu.\\w+")  // like: nano.menu.cpu.atmega328
+                        .stream()
+                        .peek( key -> {
+                            String cpu = key.substring( key.lastIndexOf(".")+1 );
+                            boardIds.add( new BoardId(name, cpu) );  
+                        })
+                        .count();
+                    if ( variantsCount == 0 ) {
+                        boardIds.add( new BoardId(name) );
+                    }
+                });
+            return Collections.unmodifiableSet(boardIds);
         } else {
-            return boardLookup.keySet();
+            return Collections.unmodifiableSet(boardIds);
         }
     }
     
@@ -105,7 +130,7 @@ public class Platform extends ArduinoDataSource {
         return new ArrayList<>(boardLookup.values());
     }
     
-    public Board getBoard( String boardId ) throws IOException {
+    public Board getBoard( BoardId boardId ) throws IOException {
         if ( boardLookup.isEmpty() ) generateBoardLookup();
         return boardLookup.get( boardId );
     }
@@ -179,6 +204,11 @@ public class Platform extends ArduinoDataSource {
                     (val1, val2) -> val2
                 ) );
         }
+    }
+    
+    private static List <String> findMatchingKeys( Map<String,String> data, String regex ) {
+        Pattern pattern = Pattern.compile(regex);
+        return data.keySet().stream().filter( key -> pattern.matcher(key).matches() ).collect( Collectors.toList() );
     }
     
 }

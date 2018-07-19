@@ -60,6 +60,7 @@ import static com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardP
 import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.*;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.Requirements.MINIMUM_ARDUINO_VERSION;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardId;
 import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import com.microchip.mplab.nbide.embedded.arduino.utils.ArduinoProjectFileFilter;
 import com.microchip.mplab.nbide.embedded.makeproject.ui.wizards.WizardProjectConfiguration;
@@ -88,7 +89,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private static final String MAKEFILE_NAME = "Makefile";   // NOI18N
     
     private final Set<ChangeListener> listeners = new HashSet<>();
-    private Map<String, String> boardIdLookup = new HashMap<>();
+    private Map<String, BoardId> boardIdLookup = new HashMap<>();
     private final ArduinoConfig arduinoConfig;
     private final PlatformFactory platformFactory;
     private List<Platform> allPlatforms;
@@ -347,7 +348,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         
         Board board = null;
         try {
-            String boardId = boardIdLookup.get(boardName);
+            BoardId boardId = boardIdLookup.get(boardName);
             board = currentPlatform.getBoard(boardId);
         } catch (IOException ex) {
             Exceptions.printStackTrace(ex);
@@ -621,7 +622,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     
     private boolean isBoardValid() {
         String boardName = readSelectedValueFromComboBox(view.boardCombo);
-        String boardId = boardIdLookup.get(boardName);
+        BoardId boardId = boardIdLookup.get(boardName);
         return boardId != null;
     }
     
@@ -723,10 +724,15 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private void updateDeviceAndToolchain() {
         try {
             String boardName = readSelectedValueFromComboBox(view.boardCombo);
-            String boardId = boardIdLookup.get(boardName);
+            BoardId  boardId = boardIdLookup.get(boardName);
             Board board = currentPlatform.getBoard(boardId);
-            deviceName = board.getValue("build.mcu").flatMap( this::findMPLABDeviceNameForMCU ).orElse("");
-            languageToolchain = findMatchingLanguageToolchain(deviceName).orElse(null);
+            if ( board != null ) {
+                deviceName = board.getValue("build.mcu").flatMap( this::findMPLABDeviceNameForMCU ).orElse("");
+                languageToolchain = findMatchingLanguageToolchain(deviceName).orElse(null);
+            } else {
+                deviceName = "";
+                languageToolchain = null;
+            }            
         } catch (IOException ex) {
             
             Exceptions.printStackTrace(ex);
@@ -770,6 +776,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         String lowerCaseMCU = mcu.toLowerCase();
         try {
             return Arrays.stream( DeviceSupport.getInstance().getDeviceNames() )
+//                .peek( n -> System.out.println(n.toLowerCase() + " - " + lowerCaseMCU) )
                 .filter( n -> n.toLowerCase().contains(lowerCaseMCU) )
                 .min( (n1, n2) -> Integer.signum( (n1.length()-mcu.length()) - (n2.length()-mcu.length()) ) );
         } catch (DeviceSupportException ex) {
@@ -783,6 +790,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         if ( device != null ) {
             return LanguageToolchainManager.getDefault().getToolchains()
                 .stream()
+//                .peek( tc -> System.out.println( tc.getDirectory() + " : " + tc.getMeta().getSupportedDevices() ) )
                 .filter(tc -> tc.getSupport(device).isSupported())
                 .filter(tc -> tc.getTool(LanguageTool.CCCompiler) != null)
                 .findAny();

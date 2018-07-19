@@ -85,7 +85,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
     public Set<FileObject> doInBackground() {
         try {
             return invokeImporterTasks();
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             this.exception = ex;
             LOGGER.log( Level.SEVERE, "Failed to import project", ex );
             final File projectDir = (File) wizardDescriptor.getProperty(WizardProperty.PROJECT_DIR.key());

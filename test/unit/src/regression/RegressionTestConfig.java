@@ -1,5 +1,6 @@
 package regression;
 
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardId;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import java.io.File;
@@ -104,15 +105,18 @@ public class RegressionTestConfig {
 
                 List includedProjectsRootDir = (List) parametersMap.get(ByteList.create("includeProjectsFrom"));
                 if (includedProjectsRootDir != null) {
-                    includedProjectsRootDir.forEach(dir -> {
-                        Path projectRootPath = rootHardwarePath.resolve(dir.toString());
-                        if (Files.exists(projectRootPath)) {
-                            List<Path> allProjectsInDirectory = findAllProjectsUnder(projectRootPath);
-                            platformTestConfig.additionalProjectPaths.addAll(allProjectsInDirectory);
-                        } else {
-                            throw new IllegalArgumentException("Can't find project \"" + p + "\" under \"" + rootHardwarePath + "\"");
-                        }
-                    });
+                    includedProjectsRootDir
+                        .stream()
+                        .filter( dir -> dir != null )
+                        .forEach(dir -> {
+                            Path projectRootPath = rootHardwarePath.resolve(dir.toString());
+                            if (Files.exists(projectRootPath)) {
+                                List<Path> allProjectsInDirectory = findAllProjectsUnder(projectRootPath);
+                                platformTestConfig.additionalProjectPaths.addAll(allProjectsInDirectory);
+                            } else {
+                                throw new IllegalArgumentException("Can't find project \"" + p + "\" under \"" + rootHardwarePath + "\"");
+                            }
+                        });
                 }
             }
             ret.add(platformTestConfig);
@@ -259,14 +263,14 @@ public class RegressionTestConfig {
     public static class PlatformTestConfig {
 
         private Platform platform;
-        private List<String> boardIDs = new ArrayList<>();
+        private List<BoardId> boardIDs = new ArrayList<>();
         private List<Path> additionalProjectPaths = new ArrayList<>();
 
         public Platform getPlatform() {
             return platform;
         }
 
-        public List<String> getBoardIDs() {
+        public List<BoardId> getBoardIDs() {
             return boardIDs;
         }
 

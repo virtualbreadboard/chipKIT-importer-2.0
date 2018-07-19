@@ -2,6 +2,7 @@ package integration;
 
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardId;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import java.io.IOException;
@@ -26,26 +27,26 @@ public class ArduinoBoardConfigNavigatorTest {
     
     @Test
     public void should_find_26_Arduino_boards() throws IOException  {
-        Map <String,String> boardIdsAndNames = platform.getBoardNamesToIDsLookup();
+        Map <String,BoardId> boardIdsAndNames = platform.getBoardNamesToIDsLookup();
         Assert.assertNotNull( "Board name to ID map cannot be null", boardIdsAndNames );
         Assert.assertEquals("Board name to ID map must have 26 entries", 26, boardIdsAndNames.size() );
     }
 
     @Test
     public void leonardo_should_have_atmega32u4_mcu() throws IOException  {
-        Optional<String> mcu = platform.getBoard("leonardo").getValue("build.mcu");
+        Optional<String> mcu = platform.getBoard( new BoardId("leonardo") ).getValue("build.mcu");
         Assert.assertEquals("MCU for Leonardo should be atmega32u4", "atmega32u4", mcu.get() );
     }
 
     @Test
     public void should_find_proper_path_for_variant_without_a_boards_txt_file() throws IOException  {
-        Path path = platform.getBoard("leonardoeth").getVariantPath();
+        Path path = platform.getBoard( new BoardId("leonardoeth") ).getVariantPath();
         Assert.assertEquals("Failed to find the proper variant directory", testVariantsDirPath.resolve("leonardo"), path );
     }
 
     @Test
     public void should_find_proper_path_for_variant_with_a_boards_txt_file() throws IOException  {
-        Path path = platform.getBoard("leonardo").getVariantPath();
+        Path path = platform.getBoard( new BoardId("leonardo") ).getVariantPath();
         Assert.assertEquals("Failed to find the proper variant directory", testVariantsDirPath.resolve("leonardo"), path );
     }
     

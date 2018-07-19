@@ -18,24 +18,26 @@ package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
 import com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardProperty;
-import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
 import org.openide.WizardDescriptor;
 import org.openide.filesystems.FileObject;
 import static com.microchip.mplab.nbide.embedded.makeproject.api.wizards.NewMakeProjectWizardIterator.TYPE_APPLICATION;
 import java.awt.Component;
 import java.text.MessageFormat;
+import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JComponent;
 import javax.swing.event.ChangeListener;
-import org.openide.util.Exceptions;
 import org.openide.util.NbBundle;
 
 
 public class ImportWizardIterator implements WizardDescriptor.InstantiatingIterator {
 
+    private static final Logger LOGGER = Logger.getLogger(ImportWizardIterator.class.getName());
+    
     private final ArduinoConfig arduinoConfig;
     private ImportWorker importWorker;
     private int index;
@@ -85,14 +87,14 @@ public class ImportWizardIterator implements WizardDescriptor.InstantiatingItera
     }
 
     @Override
-    public Set<FileObject> instantiate() throws IOException {
+    public Set<FileObject> instantiate() {
         try {
             Set<FileObject> resultSet = importWorker.get();
             return resultSet;
-        } catch (InterruptedException | ExecutionException ex) {
-            Exceptions.printStackTrace(ex);
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Import failed!", ex);
+            return new HashSet<>();
         }
-        return new HashSet<>();
     }
 
     @Override

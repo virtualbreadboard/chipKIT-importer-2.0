@@ -83,6 +83,7 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
         build(makefilePath, toolFinder, null);
     }
     
+    // TODO: Cleanup temp directories even after failed import
     public void build( Path makefilePath, GCCToolFinder toolFinder, Consumer<String> messageConsumer ) throws IOException, InterruptedException {
         this.buildDirPath = Files.createTempDirectory("build");
         this.toolFinder = toolFinder;

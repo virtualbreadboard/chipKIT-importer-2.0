@@ -1,12 +1,10 @@
 package com.microchip.mplab.nbide.embedded.arduino.importer;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public abstract class ArduinoDataSource {
     
@@ -57,11 +55,6 @@ public abstract class ArduinoDataSource {
         data.put(key, value);
     }
 
-    protected List <String> findMatchingKeys( String regex ) {
-        Pattern pattern = Pattern.compile(regex);
-        return data.keySet().stream().filter( key -> pattern.matcher(key).matches() ).collect( Collectors.toList() );
-    }
-    
     protected String resolveTokens( String value, ArduinoDataSource context, Map <String,String> runtimeData ) {
         String newValue = value;
         Matcher m = TOKEN_PATTERN.matcher( value );

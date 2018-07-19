@@ -2,6 +2,7 @@ package integration;
 
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardId;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import java.io.IOException;
@@ -26,26 +27,26 @@ public class ChipKITBoardConfigNavigatorTest {
     
     @Test
     public void should_find_38_PIC32_boards() throws IOException  {
-        Map <String,String> boardIdsAndNames = platform.getBoardNamesToIDsLookup();
+        Map <String,BoardId> boardIdsAndNames = platform.getBoardNamesToIDsLookup();
         Assert.assertNotNull( "Board name to ID map cannot be null", boardIdsAndNames );
         Assert.assertEquals("Board name to ID map must have 38 entries", 38, boardIdsAndNames.size() );
     }
     
     @Test
     public void cerebot32mx4_should_have_32MX460F512L_mcu() throws IOException  {
-        Optional<String> mcu = platform.getBoard("cerebot32mx4").getValue("build.mcu");
+        Optional<String> mcu = platform.getBoard(new BoardId("cerebot32mx4")).getValue("build.mcu");
         Assert.assertEquals("MCU should be 32MX460F512L", "32MX460F512L", mcu.get() );
     }
     
     @Test
     public void should_find_proper_path_for_variant_without_a_boards_txt_file() throws IOException  {
-        Path path = platform.getBoard("lenny").getVariantPath();
+        Path path = platform.getBoard(new BoardId("lenny")).getVariantPath();
         Assert.assertEquals("Failed to find the proper variant directory", testVariantsDirPath.resolve("Lenny"), path );
     }
     
     @Test
     public void should_find_proper_path_for_variant_with_a_boards_txt_file() throws IOException  {
-        Path path = platform.getBoard("chipkit_uc32").getVariantPath();
+        Path path = platform.getBoard(new BoardId("chipkit_uc32")).getVariantPath();
         Assert.assertEquals("Failed to find the proper variant directory", testVariantsDirPath.resolve("uC32"), path );
     }
     

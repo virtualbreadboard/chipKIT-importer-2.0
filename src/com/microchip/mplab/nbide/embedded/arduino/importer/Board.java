@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -24,11 +23,9 @@ public final class Board extends ArduinoDataSource {
     
     private static final Logger LOGGER = Logger.getLogger(Board.class.getName());
     
-    private final String boardId;
-    private String selectedCpu;
-    private final List <String> cpus = new ArrayList<>();
+    private final BoardId boardId;
     
-    Board(Platform platform, String boardId, Map <String,String> data) {
+    Board(Platform platform, BoardId boardId, Map <String,String> data) {
         super(platform, data);
         this.boardId = boardId;
         putValue("fqbn", createFQBN());
@@ -38,9 +35,6 @@ public final class Board extends ArduinoDataSource {
             String ldScriptDebug = ldScript.substring( 0, ldScript.lastIndexOf(".") ) + "-debug.ld";
             putValue("ldscript-debug", ldScriptDebug);
         }
-        findMatchingKeys( boardId + ".menu.cpu.\\w+").forEach( key -> {
-            cpus.add( key.substring( key.lastIndexOf(".")+1 ) );
-        });
     }
 
     @Override
@@ -74,7 +68,7 @@ public final class Board extends ArduinoDataSource {
         return (Platform) parent;
     }
     
-    public String getBoardId() {
+    public BoardId getBoardId() {
         return boardId;
     }
     
@@ -93,29 +87,6 @@ public final class Board extends ArduinoDataSource {
     public boolean isSAMD() {
         return getPlatform().isSAMD();
     }
-
-    public void setSelectedCpu(String selectedCpu) {
-        if ( (selectedCpu == null || selectedCpu.isEmpty()) && (this.selectedCpu == null || this.selectedCpu.isEmpty()) ) return;
-        if ( selectedCpu != null && selectedCpu.equals(this.selectedCpu) ) return;
-        
-        this.selectedCpu = selectedCpu;
-        putValue("fqbn", createFQBN());
-        if ( selectedCpu != null && !selectedCpu.isEmpty() ) {
-            getValue("menu.cpu." + selectedCpu + ".build.f_cpu").ifPresent( value -> putValue("build.f_cpu", value) );
-            getValue("menu.cpu." + selectedCpu + ".build.mcu").ifPresent( value -> putValue("build.mcu", value) );
-        } else {
-            putValue("build.f_cpu", null);
-            putValue("build.mcu", null);
-        }
-    }
-
-    public String getSelectedCpu() {
-        return selectedCpu;
-    }
-    
-    public List <String> getCPUs() {
-        return Collections.unmodifiableList(cpus);
-    }
     
     public Optional<String> getDeviceLinkerScriptFilename() {
         return getValue("ldscript");
@@ -130,20 +101,22 @@ public final class Board extends ArduinoDataSource {
     }
     
     @Override
-    public Optional<String> getValue( String key, ArduinoDataSource context, Map <String,String> auxData ) {
-        String value = auxData != null ? auxData.get(key) : null;
-        if ( value == null ) value = data.get(boardId + "." + key);
+    public Optional<String> getValue( String dataKey, ArduinoDataSource context, Map <String,String> auxData ) {
+        String value = auxData != null ? auxData.get(dataKey) : null;
+        if ( value == null ) value = data.get( createCompleteKey(dataKey) );
+        if ( value == null ) value = data.get( createShortKey(dataKey) ); 
         if ( value != null ) {
             value = resolveTokens(value, context, auxData);
             return Optional.of(value);
         } else {
-            return parent.getValue(key, context, auxData).map( v -> resolveTokens(v, context, auxData) );
+            return parent.getValue(dataKey, context, auxData).map( v -> resolveTokens(v, context, auxData) );
         }
     }
     
     @Override
-    public void putValue(String key, String value) {
-        super.putValue(boardId + "." + key, value);
+    public void putValue(String dataKey, String value) {
+        String completeKey = createCompleteKey(dataKey);
+        super.putValue( completeKey, value );
     }
         
     public List <Path> getCoreDirPaths() {
@@ -239,7 +212,16 @@ public final class Board extends ArduinoDataSource {
     //***************************************
     private String createFQBN() {
         // E.g: arduino:avr:pro:cpu=8MHzatmega328
-        String cpuPart = ((selectedCpu != null && !selectedCpu.isEmpty()) ? ":cpu=" + selectedCpu : "");
-        return getPlatform().getVendor() + ":" + getPlatform().getArchitecture() + ":" + boardId + cpuPart;
+        String cpuPart = (boardId.hasCpu() ? ":cpu=" + boardId.getCpu() : "");
+        return getPlatform().getVendor() + ":" + getPlatform().getArchitecture() + ":" + boardId.getBoard() + cpuPart;
     }
+    
+    private String createShortKey( String dataKey ) {
+        return boardId.getBoard() + "." + dataKey;
+    }
+    
+    private String createCompleteKey( String dataKey ) {
+        return (boardId.hasCpu() ? boardId.getBoard() + ".menu.cpu." + boardId.getCpu() : boardId.getBoard()) + "." + dataKey;
+    }
+    
 }

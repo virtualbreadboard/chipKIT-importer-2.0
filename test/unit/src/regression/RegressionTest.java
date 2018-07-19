@@ -8,6 +8,7 @@ import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.arduino.importer.GCCToolFinder;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.*;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardId;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Platform;
 import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import java.io.IOException;
@@ -43,18 +44,16 @@ public class RegressionTest {
     private final Path toolchainPath;
     private final String vendor;
     private final String architecture;
-    private final String boardId;
-    private final String boardCpu;
+    private final BoardId boardId;
     private final Path sourceProjectPath;
     private final Path targetProjectPath;
     
     
-    public RegressionTest( RegressionTestConfig config, String vendor, String architecture, String boardId, String boardCpu, Path sourceProjectPath, Path targetProjectPath ) {
+    public RegressionTest( RegressionTestConfig config, String vendor, String architecture, BoardId boardId, Path sourceProjectPath, Path targetProjectPath ) {
         this.arduinoInstallPath = config.getArduinoInstallPath();        
         this.vendor = vendor;
         this.architecture = architecture;                
         this.boardId = boardId;
-        this.boardCpu = boardCpu;
         this.sourceProjectPath = sourceProjectPath;
         this.targetProjectPath = targetProjectPath;
         switch (architecture.toLowerCase()) {
@@ -109,7 +108,6 @@ public class RegressionTest {
         final ArduinoConfig arduinoConfig = ArduinoConfig.getInstance();
         final Platform platform = new PlatformFactory().createPlatform( ArduinoConfig.getInstance().getSettingsPath(), vendor, architecture );
         final Board board = platform.getBoard(boardId);
-        board.setSelectedCpu(boardCpu);
         
         final ArduinoBuilderRunner arduinoBuilderRunner = new ArduinoBuilderRunner(toolFinder, arduinoConfig, arduinoInstallPath, LOGGER::info );
                 
