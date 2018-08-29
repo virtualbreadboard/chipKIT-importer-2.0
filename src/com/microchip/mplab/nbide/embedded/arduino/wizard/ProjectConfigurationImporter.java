@@ -15,6 +15,7 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
+import com.microchip.crownking.opt.OptionLanguage;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfiguration;
@@ -25,7 +26,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,6 +37,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class ProjectConfigurationImporter {
+    
+    private static final OptionLanguage.Signature OPTION_SIGNATURE = new OptionLanguage.Signature(
+        "com.microchip.mplab.nbide.embedded.ui.options.GenericSettingsPanel",  // NOI18N
+        "genericsettings.optionLanguage.xml",  // NOI18N
+        null
+    );
     
     private final Board board;
     private final ProjectImporter importer;
@@ -107,15 +113,21 @@ public abstract class ProjectConfigurationImporter {
         OptionConfiguration conf = (OptionConfiguration) makeConf.getAuxObject(confItemId);
         if ( conf != null ) {
             conf.setProperty(propertyKey, propertyValue);
-            conf.markChanged();
+        } else {
+            OptionConfiguration newConf = new OptionConfiguration(confItemId, OPTION_SIGNATURE);
+            newConf.setProperty(propertyKey, propertyValue);
+            makeConf.addAuxObject( newConf );
         }
     }
 
-    protected void setAppendixValue(MakeConfiguration makeConf, String confItemId, String value) {                
+    protected void setAppendixValue(MakeConfiguration makeConf, String confItemId, String value) {        
         OptionConfiguration conf = (OptionConfiguration) makeConf.getAuxObject(confItemId);
         if ( conf != null ) {
             conf.setAppendix(value);
-            conf.markChanged();        
+        } else {
+            OptionConfiguration newConf = new OptionConfiguration(confItemId, OPTION_SIGNATURE);
+            newConf.setAppendix(value);
+            makeConf.addAuxObject( newConf );
         }
     }
     
@@ -228,5 +240,7 @@ public abstract class ProjectConfigurationImporter {
     protected String getMCU() {
         return board.getValue("build.mcu").orElse("");
     }
+    
+    
     
 }

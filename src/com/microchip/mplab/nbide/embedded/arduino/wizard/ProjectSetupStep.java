@@ -802,8 +802,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private static class PlatformComboModel extends DefaultComboBoxModel<Platform> {
         PlatformComboModel( List<Platform> platforms ) {
             super( platforms.toArray( new Platform[platforms.size()] ) );
-        }
-        
+        }        
     }
     
 }

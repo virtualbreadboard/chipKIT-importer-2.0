@@ -30,7 +30,7 @@ public class LibCoreBuilder extends AbstractMakeAssistant {
     public static final String LIB_CORE_NAME = "Core";
     public static final String LIB_CORE_FILENAME = "lib" + LIB_CORE_NAME + ".a";
     
-    private Path sourceDir;
+    private final Path sourceDir;
     private Path buildDirPath;
     private Board board;
     private GCCToolFinder toolFinder;
