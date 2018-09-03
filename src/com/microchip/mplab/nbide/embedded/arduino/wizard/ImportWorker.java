@@ -227,7 +227,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         LanguageToolchain languageToolchain = LanguageToolchainManager.getDefault().getToolchainWithMetaID( languageToolchainID );
         conf.getLanguageToolchain().setMetaID(new StringConfiguration(null, languageToolchain.getMeta().getID()));
         conf.getLanguageToolchain().setDir(new StringConfiguration(null, languageToolchain.getDirectory()));
-        conf.getLanguageToolchain().setVersion(new StringConfiguration(null, languageToolchain.getVersion()));
+        conf.getLanguageToolchain().setVersion(new StringConfiguration(null, languageToolchain.getVersion()));                
         
         return conf;
     }
@@ -340,7 +340,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
             final String arduinoBuilderCommand = importer.getPreprocessingCommand() + " > preprocess.log";  // Redirecting Arduino Builder output to a log file
             
             newProjectDescriptor.getConfs().getConfigurtions().forEach( c -> {
-                MakeConfiguration mc = (MakeConfiguration) c;
+                MakeConfiguration mc = (MakeConfiguration) c;                
                 mc.getMakeCustomizationConfiguration().setPreBuildStep( arduinoBuilderCommand );
                 mc.getMakeCustomizationConfiguration().setApplyPreBuildStep(true);
             });

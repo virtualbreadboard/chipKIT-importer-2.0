@@ -1,6 +1,5 @@
 package regression;
 
-import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
 import com.microchip.mplab.nbide.embedded.arduino.importer.BoardId;
 import utils.TestUtilities;
 import java.io.IOException;

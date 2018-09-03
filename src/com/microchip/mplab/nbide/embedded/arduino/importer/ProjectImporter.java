@@ -17,6 +17,7 @@ package com.microchip.mplab.nbide.embedded.arduino.importer;
 
 
 import com.microchip.mplab.nbide.embedded.arduino.utils.CopyingFileVisitor;
+import com.microchip.mplab.nbide.embedded.arduino.utils.CopyingFileVisitorWithHeaderDereference;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
@@ -338,8 +339,8 @@ public class ProjectImporter {
     private void copyCoreFiles() throws IOException {
         if ( !copyingFiles ) return;
         Path targetCoreDirPath = getTargetCoreDirectoryPath();        
-        Files.walkFileTree(sourceCoreDirPath, new CopyingFileVisitor(sourceCoreDirPath, targetCoreDirPath, PROJECT_SOURCE_FILE_MATCHER ));
-        Files.walkFileTree(sourceVariantDirPath, new CopyingFileVisitor(sourceVariantDirPath, targetCoreDirPath, PROJECT_SOURCE_FILE_MATCHER ));
+        Files.walkFileTree(sourceCoreDirPath, new CopyingFileVisitor( sourceCoreDirPath, targetCoreDirPath, PROJECT_SOURCE_FILE_MATCHER ));
+        Files.walkFileTree(sourceVariantDirPath, new CopyingFileVisitorWithHeaderDereference( sourceVariantDirPath, targetCoreDirPath ));
     }
     
     private void copyLibraries() {

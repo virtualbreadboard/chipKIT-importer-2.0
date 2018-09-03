@@ -16,6 +16,7 @@
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
 import com.microchip.crownking.opt.OptionLanguage;
+import com.microchip.mplab.nbide.embedded.api.LanguageToolchainMeta;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfiguration;
@@ -37,12 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class ProjectConfigurationImporter {
-    
-    private static final OptionLanguage.Signature OPTION_SIGNATURE = new OptionLanguage.Signature(
-        "com.microchip.mplab.nbide.embedded.ui.options.GenericSettingsPanel",  // NOI18N
-        "genericsettings.optionLanguage.xml",  // NOI18N
-        null
-    );
     
     private final Board board;
     private final ProjectImporter importer;
@@ -114,9 +109,10 @@ public abstract class ProjectConfigurationImporter {
         if ( conf != null ) {
             conf.setProperty(propertyKey, propertyValue);
         } else {
-            OptionConfiguration newConf = new OptionConfiguration(confItemId, OPTION_SIGNATURE);
-            newConf.setProperty(propertyKey, propertyValue);
-            makeConf.addAuxObject( newConf );
+            LanguageToolchainMeta meta = makeConf.getLanguageToolchain().getToolchainMeta();            
+            OptionConfiguration opt = new OptionConfiguration(confItemId, meta.getSignature(confItemId));
+            opt.setProperty(propertyKey, propertyValue);
+            makeConf.addAuxObject( opt );
         }
     }
 
@@ -125,9 +121,10 @@ public abstract class ProjectConfigurationImporter {
         if ( conf != null ) {
             conf.setAppendix(value);
         } else {
-            OptionConfiguration newConf = new OptionConfiguration(confItemId, OPTION_SIGNATURE);
-            newConf.setAppendix(value);
-            makeConf.addAuxObject( newConf );
+            LanguageToolchainMeta meta = makeConf.getLanguageToolchain().getToolchainMeta();            
+            OptionConfiguration opt = new OptionConfiguration(confItemId, meta.getSignature(confItemId));
+            opt.setAppendix(value);
+            makeConf.addAuxObject( opt );
         }
     }
     

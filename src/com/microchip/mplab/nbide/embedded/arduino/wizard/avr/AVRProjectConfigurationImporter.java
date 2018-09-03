@@ -38,28 +38,30 @@ public final class AVRProjectConfigurationImporter extends ProjectConfigurationI
     @Override
     public void run() throws IOException {
         Set<String> cppAppendOptionsSet = getExtraOptionsCPP();
-        boolean cppExceptions = !cppAppendOptionsSet.remove("-fno-exceptions");
         String cppAppendOptions = String.join(" ", cppAppendOptionsSet);
 
         String includeDirectories = assembleIncludeDirectories();
         String preprocessorMacros = getCompilerMacros();
         String ldAppendOptions = getBoard().getValue("build.mcu").map(mcu -> "-mmcu=" + mcu).orElse("");
         String cAppendOptions = String.join(" ", getExtraOptionsC());
-       
+        
         getProjectDescriptor().getConfs().getConfigurtions().forEach(c -> {
             MakeConfiguration mc = (MakeConfiguration) c;
+            
             setAuxOptionValue(mc, "AVR-Global", "common-include-directories", includeDirectories);
             setAuxOptionValue(mc, "AVR-Global", "legacy-libc", "false");
-            setAuxOptionValue(mc, "AVR-GCC", "preprocessor-macros", preprocessorMacros);
+            
+            setAuxOptionValue(mc, "AVR-GCC", "preprocessor-macros", preprocessorMacros);            
             setAuxOptionValue(mc, "AVR-GCC", "optimization-level", DEFAULT_OPTIMIZATION_OPTION);
+            setAppendixValue(mc, "AVR-GCC", cAppendOptions);
+            
             setAuxOptionValue(mc, "AVR-CPP", "preprocessor-macros", preprocessorMacros);
             setAuxOptionValue(mc, "AVR-CPP", "optimization-level", DEFAULT_OPTIMIZATION_OPTION);
-            setAuxOptionValue(mc, "AVR-CPP", "exceptions", Boolean.toString(cppExceptions));
+            setAppendixValue(mc, "AVR-CPP", cppAppendOptions);
+            
             setAuxOptionValue(mc, "AVR-LD", "remove-unused-sections", "true");
             setAuxOptionValue(mc, "AVR-LD", "extra-lib-directories", ProjectImporter.CORE_DIRECTORY_NAME);
             setAuxOptionValue(mc, "AVR-LD", "input-libraries", LibCoreBuilder.LIB_CORE_NAME);
-            setAppendixValue(mc, "AVR-GCC", cAppendOptions);
-            setAppendixValue(mc, "AVR-CPP", cppAppendOptions);
             setAppendixValue(mc, "AVR-LD", ldAppendOptions);
         });
     }

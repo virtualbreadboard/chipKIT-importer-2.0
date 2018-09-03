@@ -127,7 +127,7 @@ public class CopyingFileVisitor implements FileVisitor<Path> {
 
     protected void copyFile(Path source, Path target) {
         if ( fileMatcher != null && !fileMatcher.matches(source.getFileName()) ) {
-            // Don't copy files other than source and header files
+            // Don't copy files other than don't match the file matcher
             return;
         }
 
