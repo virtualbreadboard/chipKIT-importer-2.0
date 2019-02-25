@@ -16,12 +16,10 @@
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
 import java.awt.Component;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;

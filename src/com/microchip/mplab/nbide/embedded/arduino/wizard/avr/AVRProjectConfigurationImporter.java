@@ -16,7 +16,7 @@ package com.microchip.mplab.nbide.embedded.arduino.wizard.avr;
 
 import com.microchip.mplab.nbide.embedded.arduino.importer.LibCoreBuilder;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter;
-import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfiguration;
 import com.microchip.mplab.nbide.embedded.arduino.wizard.ProjectConfigurationImporter;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfiguration;
 import com.microchip.mplab.nbide.embedded.makeproject.api.configurations.MakeConfigurationBook;
@@ -42,7 +42,7 @@ public final class AVRProjectConfigurationImporter extends ProjectConfigurationI
 
         String includeDirectories = assembleIncludeDirectories();
         String preprocessorMacros = getCompilerMacros();
-        String ldAppendOptions = getBoard().getValue("build.mcu").map(mcu -> "-mmcu=" + mcu).orElse("");
+        String ldAppendOptions = getBoardConfiguration().getValue("build.mcu").map(mcu -> "-mmcu=" + mcu).orElse("");
         String cAppendOptions = String.join(" ", getExtraOptionsC());
         
         getProjectDescriptor().getConfs().getConfigurtions().forEach(c -> {
@@ -68,16 +68,16 @@ public final class AVRProjectConfigurationImporter extends ProjectConfigurationI
 
     @Override
     protected String getCompilerMacros() {
-        Board board = getBoard();
-        String avrChip = board.getValue("build.mcu")
+        BoardConfiguration boardConfiguration = getBoardConfiguration();
+        String avrChip = boardConfiguration.getValue("build.mcu")
                 .map(mcu -> "_" + mcu.toLowerCase() + "_")
                 .flatMap(_mcu_ -> SUPPORTED_AVR_DEVICE_NAMES.stream().filter(dev -> dev.toLowerCase().contains(_mcu_)).findFirst())
                 .orElse("");
 
         return new StringBuilder()
-                .append("F_CPU=").append(board.getValue("build.f_cpu").orElse("")).append(";")
-                .append("ARDUINO=").append(board.getValue("runtime.ide.version").orElse("")).append(";")
-                .append(board.getValue("build.board").orElse("")).append(";")
+                .append("F_CPU=").append(boardConfiguration.getValue("build.f_cpu").orElse("")).append(";")
+                .append("ARDUINO=").append(boardConfiguration.getValue("runtime.ide.version").orElse("")).append(";")
+                .append(boardConfiguration.getValue("build.board").orElse("")).append(";")
                 .append("IDE=Arduino").append(";")
                 .append(avrChip)
                 .toString();

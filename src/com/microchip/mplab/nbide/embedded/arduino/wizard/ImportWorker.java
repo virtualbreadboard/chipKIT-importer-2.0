@@ -61,6 +61,7 @@ import org.openide.modules.InstalledFileLocator;
 import org.openide.util.Exceptions;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ProjectImporter.IMPORTED_PROPERTIES_FILENAME;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfiguration;
 import com.microchip.mplab.nbide.embedded.arduino.wizard.avr.AVRProjectConfigurationImporter;
 import com.microchip.mplab.nbide.embedded.arduino.wizard.pic32.PIC32ProjectConfigurationImporter;
 import java.util.Arrays;
@@ -144,20 +145,20 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         return resultSet;
     }
     
-    private void deleteExistingProject(File projectDir) throws IOException {
+     private void deleteExistingProject(File projectDir) throws IOException {
         if (projectDir != null) {
             projectDir = FileUtil.normalizeFile(projectDir);
-        }
-        FileObject dirFO = FileUtil.toFileObject(projectDir);
-        MakeProject proj = null;
-        if (dirFO != null) {
-            proj = (MakeProject) ProjectManager.getDefault().findProject(dirFO);
-        }
-        if (proj != null) {
-            if (OpenProjects.getDefault().isProjectOpen(proj)) {
-                OpenProjects.getDefault().close(new MakeProject[]{proj});
+            FileObject dirFO = FileUtil.toFileObject(projectDir);
+            MakeProject proj = null;
+            if (dirFO != null) {
+                proj = (MakeProject) ProjectManager.getDefault().findProject(dirFO);
             }
-            Files.walkFileTree(proj.getProjectDirectoryFile().toPath(), new DeletingFileVisitor());
+            if (proj != null) {
+                if (OpenProjects.getDefault().isProjectOpen(proj)) {
+                    OpenProjects.getDefault().close(new MakeProject[]{proj});
+                }
+                Files.walkFileTree(proj.getProjectDirectoryFile().toPath(), new DeletingFileVisitor());
+            }
         }
     }
 
@@ -189,10 +190,10 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         File projectDirectory = (File) wizardDescriptor.getProperty(WizardProperty.PROJECT_DIR.key());
         if (projectDirectory != null) {
             projectDirectory = FileUtil.normalizeFile(projectDirectory);
+            projectDirectory.mkdirs();
+            FileObject dir = FileUtil.toFileObject(projectDirectory);
+            projectRootDirectories.add(dir);
         }
-        projectDirectory.mkdirs();
-        FileObject dir = FileUtil.toFileObject(projectDirectory);
-        projectRootDirectories.add(dir);
         return projectDirectory;
     }
 
@@ -239,7 +240,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         boolean copyFiles = (boolean) wizardDescriptor.getProperty(COPY_CORE_FILES.key());
         File targetProjectDir = (File) wizardDescriptor.getProperty(PROJECT_DIR.key());
         File sourceProjectDir = (File) wizardDescriptor.getProperty(SOURCE_PROJECT_DIR.key());        
-        Board board = (Board) wizardDescriptor.getProperty(BOARD.key());
+        BoardConfiguration boardConfiguration = (BoardConfiguration) wizardDescriptor.getProperty(BOARD_CONFIGURATION.key());
         File arduinoInstallDir = (File) wizardDescriptor.getProperty(ARDUINO_DIR.key());
 
         GCCToolFinder toolFinder = new GCCToolFinder(newProject.getActiveConfiguration().getLanguageToolchain().findToolchain());
@@ -258,13 +259,13 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
         Path customLdScriptsDirectoryPath = customLinkerScriptsDir.toPath();
 
         ProjectImporter importer = new ProjectImporter();
-        importer.setCopyingFiles( copyFiles );
-        importer.setBoard(board);
-        importer.setSourceProjectDirectoryPath( sourceProjectDir.toPath() );
-        importer.setTargetProjectDirectoryPath( targetProjectDir.toPath() );
-        importer.setArduinoBuilderRunner( arduinoBuilderRunner );
-        importer.setBootloaderPathProvider( bootloaderPathProvider );
-        importer.setCustomLdScriptsPath( customLdScriptsDirectoryPath );
+        importer.setCopyingFiles(copyFiles);
+        importer.setBoardConfiguration(boardConfiguration);
+        importer.setSourceProjectDirectoryPath(sourceProjectDir.toPath());
+        importer.setTargetProjectDirectoryPath(targetProjectDir.toPath());
+        importer.setArduinoBuilderRunner(arduinoBuilderRunner);
+        importer.setBootloaderPathProvider(bootloaderPathProvider);
+        importer.setCustomLdScriptsPath(customLdScriptsDirectoryPath);
         importer.execute();
 
         // This will be used to display either the short "how-to" guide or the longer one:
@@ -281,7 +282,7 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
                 if (copyFiles) {
                     addFileToFolder(importedCoreFolder, p, importer.getTargetCoreDirectoryPath());
                 } else {
-                    addFileToFolder(importedCoreFolder, p, board.getCoreDirectoryPath(), board.getVariantPath());
+                    addFileToFolder(importedCoreFolder, p, boardConfiguration.getCoreDirectoryPath(), boardConfiguration.getVariantPath());
                 }
             }
         );
@@ -359,16 +360,16 @@ public class ImportWorker extends SwingWorker<Set<FileObject>, String> {
             LoadableItem newLoadableItem = new LoadableItem.FileItem( loadableItemPath );
             newProjectDescriptor.addLoadableItem(newLoadableItem);
         } else if ( !importer.isCustomLdScriptBoard() ) {  // If the board uses a custom .ld script, it is supposed not to use a bootloader
-            LOGGER.log(Level.WARNING, "Could not find a bootloader file for device {0}", board.getBoardId());
+            LOGGER.log(Level.WARNING, "Could not find a bootloader file for device {0}", boardConfiguration.getBoardId());
         }
         
         // Set auxiliary configuration options
-        if ( board.isAVR() ) {
+        if ( boardConfiguration.getBoard().isAVR() ) {
             new AVRProjectConfigurationImporter(importer, copyFiles, newProjectDescriptor, targetProjectDir).run();
-        } else if ( board.isPIC32() ) {
+        } else if ( boardConfiguration.getBoard().isPIC32() ) {
             new PIC32ProjectConfigurationImporter(importer, copyFiles, newProjectDescriptor, targetProjectDir).run();
         } else {
-            throw new IllegalStateException("There's no support for " + board.getArchitecture() + " devices!");
+            throw new IllegalStateException("There's no support for " + boardConfiguration.getBoard().getArchitecture() + " devices!");
         }
         
         // Create imported project properties file:

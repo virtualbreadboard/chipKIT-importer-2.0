@@ -15,17 +15,11 @@
 
 package com.microchip.mplab.nbide.embedded.arduino.wizard;
 
-import com.microchip.crownking.mplabinfo.DeviceSupport;
-import com.microchip.crownking.mplabinfo.DeviceSupportException;
 import com.microchip.crownking.opt.Version;
 import com.microchip.mplab.mdbcore.MessageMediator.ActionList;
 import com.microchip.mplab.mdbcore.MessageMediator.DialogBoxType;
 import com.microchip.mplab.mdbcore.MessageMediator.Message;
 import com.microchip.mplab.mdbcore.MessageMediator.MessageMediator;
-import com.microchip.mplab.nbide.embedded.api.LanguageTool;
-import com.microchip.mplab.nbide.embedded.api.LanguageToolchain;
-import com.microchip.mplab.nbide.embedded.api.LanguageToolchainManager;
-import com.microchip.mplab.nbide.embedded.api.LanguageToolchainMeta;
 import com.microchip.mplab.nbide.embedded.api.ui.TypeAheadComboBox;
 import com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.ArduinoConfig.ROOT_PLATFORM_ARCH;
@@ -60,22 +54,19 @@ import static com.microchip.mplab.nbide.embedded.makeproject.api.wizards.WizardP
 import static com.microchip.mplab.nbide.embedded.arduino.wizard.ImportWizardProperty.*;
 import static com.microchip.mplab.nbide.embedded.arduino.importer.Requirements.MINIMUM_ARDUINO_VERSION;
 import com.microchip.mplab.nbide.embedded.arduino.importer.Board;
-import com.microchip.mplab.nbide.embedded.arduino.importer.BoardId;
+import com.microchip.mplab.nbide.embedded.arduino.importer.BoardConfiguration;
 import com.microchip.mplab.nbide.embedded.arduino.importer.PlatformFactory;
 import com.microchip.mplab.nbide.embedded.arduino.utils.ArduinoProjectFileFilter;
-import com.microchip.mplab.nbide.embedded.makeproject.ui.wizards.WizardProjectConfiguration;
 import java.awt.event.FocusEvent;
 import java.awt.event.ItemEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.filechooser.FileFilter;
@@ -89,19 +80,22 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private static final String MAKEFILE_NAME = "Makefile";   // NOI18N
     
     private final Set<ChangeListener> listeners = new HashSet<>();
-    private Map<String, BoardId> boardIdLookup = new HashMap<>();
+    private Map<String, String> boardIdLookup = new HashMap<>();
     private final ArduinoConfig arduinoConfig;
     private final PlatformFactory platformFactory;
+    private final MPLABDeviceAssistant deviceAssistant;
+    
     private List<Platform> allPlatforms;
     private Platform currentPlatform;
+    private Board board;
     private WizardDescriptor wizardDescriptor;
     private ProjectSetupPanel view;
-    private String deviceName;
-    private LanguageToolchain languageToolchain;
-
-    public ProjectSetupStep( ArduinoConfig arduinoConfig ) {
+    
+    
+    public ProjectSetupStep( ArduinoConfig arduinoConfig, PlatformFactory platformFactory, MPLABDeviceAssistant deviceAssistant ) {
         this.arduinoConfig = arduinoConfig;
-        this.platformFactory = new PlatformFactory();
+        this.platformFactory = platformFactory;
+        this.deviceAssistant = deviceAssistant;
     }
 
     @Override
@@ -324,7 +318,12 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             boardName = NbPreferences.forModule(SelectProjectInfoPanel.class).get(BOARD_NAME.key(), null);
         }
         if (boardName != null) {
-            view.boardCombo.setSelectedItem(boardName);
+            if ( boardIdLookup.containsKey(boardName) ) {
+                view.boardCombo.setSelectedItem(boardName);
+                updateBoard();
+            } else {
+                boardName = null;
+            }
         }
 
         // Copy all dependencies:
@@ -346,12 +345,9 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         String targetDir = readLocationStringFromField( view.projectDirectoryField );
         boolean copyCoreFiles = view.copyDependenciesCheckBox.isSelected();
         
-        Board board = null;
-        try {
-            BoardId boardId = boardIdLookup.get(boardName);
-            board = currentPlatform.getBoard(boardId);
-        } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
+        if ( !board.hasOptions() ) {
+            deviceAssistant.storeSettings(settings);
+            settings.putProperty(BOARD_CONFIGURATION.key(), new BoardConfiguration(board));
         }
 
         settings.putProperty(SOURCE_PROJECT_DIR.key(), new File(sourceProjectDir));
@@ -364,13 +360,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
                 
         settings.putProperty(DEVICE_HEADER_PRESENT.key(), false);
         settings.putProperty(PLUGIN_BOARD_PRESENT.key(), false);
-        WizardProjectConfiguration.storeDeviceHeaderPlugin(settings, deviceName);
-        
-        Optional.of( languageToolchain )
-                .map( LanguageToolchain::getMeta )
-                .map( LanguageToolchainMeta::getID )
-                .ifPresent( id -> settings.putProperty(LANGUAGE_TOOL_META_ID.key(), id) );
-
+    
         settings.putProperty(PROJECT_DIR.key(), new File(targetDir));
         settings.putProperty(PROJECT_NAME.key(), projectName);
         settings.putProperty(MAKE_FILENAME.key(), MAKEFILE_NAME);
@@ -382,9 +372,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
 
         settings.putProperty(PROJECT_LOCATION.key(), projectsDir);
 
-        //settings.putProperty(SET_AS_MAIN.key(), view.mainProjectCheckBox.isSelected());  // This does not seem to work
         settings.putProperty(MAIN_CLASS.key(), null);
-
         settings.putProperty(CREATE_MAIN_FILE.key(), Boolean.FALSE);
         settings.putProperty(MAIN_FILENAME.key(), null);
         settings.putProperty(MAIN_FILE_TEMPLATE.key(), null);
@@ -493,7 +481,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     }
     
     void boardComboItemStateChanged(ItemEvent evt) {
-        updateDeviceAndToolchain();
+        updateBoard();
         fireChangeEvent();
     }
     
@@ -611,8 +599,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     }
     
     private boolean isArduinoVersionValid() {
-        Path p = Paths.get( readLocationStringFromField( view.arduinoLocationField ) );
-        return arduinoConfig.isCurrentVersionValid(p, new Version(MINIMUM_ARDUINO_VERSION) );
+        return arduinoConfig.isCurrentVersionValid( new Version(MINIMUM_ARDUINO_VERSION) );
     }
 
     private boolean isPlatformDirectoryValid() {
@@ -621,13 +608,11 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     }
     
     private boolean isBoardValid() {
-        String boardName = readSelectedValueFromComboBox(view.boardCombo);
-        BoardId boardId = boardIdLookup.get(boardName);
-        return boardId != null;
+        return board != null;
     }
     
     private boolean isToolchainValid() {
-        return languageToolchain != null;        
+        return board.hasOptions() ? true : deviceAssistant.isToolchainValid();
     }
     
     private boolean isValidProjectName() {
@@ -678,7 +663,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     private void onPlatformChanged() {        
         loadBoardsToCombo();
         view.platformLocationField.setText( currentPlatform.getRootPath().toString() );
-        updateDeviceAndToolchain();
+        updateBoard();
         fireChangeEvent();
     }
     
@@ -721,24 +706,20 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         }
     }
     
-    private void updateDeviceAndToolchain() {
-        try {
-            String boardName = readSelectedValueFromComboBox(view.boardCombo);
-            BoardId  boardId = boardIdLookup.get(boardName);
-            Board board = currentPlatform.getBoard(boardId);
-            if ( board != null ) {
-                deviceName = board.getValue("build.mcu").flatMap( this::findMPLABDeviceNameForMCU ).orElse("");
-                languageToolchain = findMatchingLanguageToolchain(deviceName).orElse(null);
-            } else {
-                deviceName = "";
-                languageToolchain = null;
-            }            
-        } catch (IOException ex) {
-            
-            Exceptions.printStackTrace(ex);
+    private void updateBoard() {
+        String boardName = readSelectedValueFromComboBox(view.boardCombo);
+        String boardId = boardIdLookup.get(boardName);
+        if ( boardId != null ) {
+            board = currentPlatform.getBoard(boardId).orElseThrow( () -> new RuntimeException("Failed to find a board with id: \""+boardId+"\""));
+            if ( !board.hasOptions() ) {
+                deviceAssistant.updateDeviceAndToolchain( new BoardConfiguration(board) );
+            }
+        } else {
+            board = null;
+            deviceAssistant.updateDeviceAndToolchain(null);
         }
     }
-    
+   
     private void fireChangeEvent() {
         Iterator<ChangeListener> it;
         synchronized (listeners) {
@@ -771,34 +752,6 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
         loadBoardsToCombo();
     }
 
-    // TODO: Move this logic to separate class
-    private Optional <String> findMPLABDeviceNameForMCU(String mcu) {
-        String lowerCaseMCU = mcu.toLowerCase();
-        try {
-            return Arrays.stream( DeviceSupport.getInstance().getDeviceNames() )
-//                .peek( n -> System.out.println(n.toLowerCase() + " - " + lowerCaseMCU) )
-                .filter( n -> n.toLowerCase().contains(lowerCaseMCU) )
-                .min( (n1, n2) -> Integer.signum( (n1.length()-mcu.length()) - (n2.length()-mcu.length()) ) );
-        } catch (DeviceSupportException ex) {
-            Exceptions.printStackTrace(ex);
-        }
-        return Optional.empty();
-    }
-    
-    // TODO: Move this logic to separate class
-    private Optional <LanguageToolchain> findMatchingLanguageToolchain( String device ) {
-        if ( device != null ) {
-            return LanguageToolchainManager.getDefault().getToolchains()
-                .stream()
-//                .peek( tc -> System.out.println( tc.getDirectory() + " : " + tc.getMeta().getSupportedDevices() ) )
-                .filter(tc -> tc.getSupport(device).isSupported())
-                .filter(tc -> tc.getTool(LanguageTool.CCCompiler) != null)
-                .findAny();
-        } else {
-            return Optional.empty();
-        }
-    }
-    
     private static class PlatformComboModel extends DefaultComboBoxModel<Platform> {
         PlatformComboModel( List<Platform> platforms ) {
             super( platforms.toArray( new Platform[platforms.size()] ) );
