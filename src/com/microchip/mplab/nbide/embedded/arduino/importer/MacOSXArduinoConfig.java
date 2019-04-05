@@ -56,7 +56,7 @@ final class MacOSXArduinoConfig extends ArduinoConfig {
 
     @Override
     public Path findArduinoBuilderPath(Path arduinoInstallPath) {
-        return arduinoInstallPath.resolve("arduino-builder");
+        return arduinoInstallPath.resolve("Contents/Java/arduino-builder");
     }
 
     private String getLibraryFolder() throws FileNotFoundException {
