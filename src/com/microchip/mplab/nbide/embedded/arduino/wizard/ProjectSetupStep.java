@@ -292,10 +292,7 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
                 
             }
         }
-        if (currentPlatform != null) {            
-            view.platformCombo.setSelectedItem( currentPlatform );
-            onPlatformChanged();
-        }
+     
         
         // Platform Location
         File platformCoreDir = (File) wizardDescriptor.getProperty(ARDUINO_PLATFORM_DIR.key());
@@ -309,6 +306,15 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
             view.platformLocationField.setText( platformCoreDir.getAbsolutePath() );
         } else {            
             view.platformLocationField.setText( currentPlatform.getRootPath().toString() );
+        }
+        
+        if( currentPlatform==null){
+            resolvePlatformFromPath();
+        }
+        
+        if (currentPlatform != null) {            
+            view.platformCombo.setSelectedItem( currentPlatform );
+            onPlatformChanged();
         }
         
         // Target Device:
@@ -691,18 +697,20 @@ public class ProjectSetupStep implements WizardDescriptor.Panel<WizardDescriptor
     }
 
     private void loadBoardsToCombo() {
-        String currentlySelectedBoardName = (view.boardCombo.getSelectedItem() != null) ? view.boardCombo.getSelectedItem().toString() : null;
-        boardIdLookup = currentPlatform.getBoardNamesToIDsLookup();
-        List<String> boardNames = new ArrayList<>(boardIdLookup.keySet());
-        // Sort the board names list in alphabetical order:
-        Collections.sort(boardNames);
-        // Set up the combo box:
-        DefaultComboBoxModel<String> cbm = new DefaultComboBoxModel<>(boardNames.toArray(new String[boardNames.size()]));
-        view.boardCombo.setModel(cbm);
-        // TODO: Verify whether calling TypeAheadComboBox.enable many times does not have adverse effects
-        TypeAheadComboBox.enable(view.boardCombo);
-        if ( currentlySelectedBoardName != null && boardNames.contains(currentlySelectedBoardName) ) {
-            view.boardCombo.setSelectedItem(currentlySelectedBoardName);
+        if( currentPlatform!=null){
+            String currentlySelectedBoardName = (view.boardCombo.getSelectedItem() != null) ? view.boardCombo.getSelectedItem().toString() : null;
+            boardIdLookup = currentPlatform.getBoardNamesToIDsLookup();
+            List<String> boardNames = new ArrayList<>(boardIdLookup.keySet());
+            // Sort the board names list in alphabetical order:
+            Collections.sort(boardNames);
+            // Set up the combo box:
+            DefaultComboBoxModel<String> cbm = new DefaultComboBoxModel<>(boardNames.toArray(new String[boardNames.size()]));
+            view.boardCombo.setModel(cbm);
+            // TODO: Verify whether calling TypeAheadComboBox.enable many times does not have adverse effects
+            TypeAheadComboBox.enable(view.boardCombo);
+            if ( currentlySelectedBoardName != null && boardNames.contains(currentlySelectedBoardName) ) {
+                view.boardCombo.setSelectedItem(currentlySelectedBoardName);
+            }
         }
     }
     

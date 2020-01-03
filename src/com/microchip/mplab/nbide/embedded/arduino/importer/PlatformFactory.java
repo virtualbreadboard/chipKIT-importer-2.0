@@ -76,16 +76,33 @@ public final class PlatformFactory {
 
     private static Platform createPlatformFromFile(Platform rootPlatform, Path platformFilePath) {
         // Pattern: /home/user/.arduino15/packages/{vendor}/hardware/{architecture}/x.x.x/platform.txt
+        // Pattern: Program Files(x86)/Arduino/hardware/arduino/avr/platform.txt
+        
         int hardwareIndex = -1;
+        int arduino15Index = -1;
+       
         for (int i = platformFilePath.getNameCount() - 1; i >= 0; i--) {
+            if ("arduino15".equalsIgnoreCase(platformFilePath.getName(i).toString())) {
+               arduino15Index = i;
+            }
             if ("hardware".equalsIgnoreCase(platformFilePath.getName(i).toString())) {
                 hardwareIndex = i;
                 break;
             }
         }
-        String vendor = platformFilePath.getName(hardwareIndex - 1).toString();
-        String architecture = platformFilePath.getName(hardwareIndex + 1).toString();
-
+        
+        String vendor ;
+        String architecture ;
+            
+        if( arduino15Index == -1){
+            //Windows
+              vendor = platformFilePath.getName(hardwareIndex + 1).toString();
+              architecture = platformFilePath.getName(hardwareIndex + 2).toString();
+        }else{
+              vendor = platformFilePath.getName(hardwareIndex - 1).toString();
+              architecture = platformFilePath.getName(hardwareIndex + 1).toString();
+        }
+ 
         try {
             if (architecture.equalsIgnoreCase("pic32")) {
                 return new PIC32Platform(rootPlatform, vendor, platformFilePath.getParent());
@@ -98,6 +115,7 @@ public final class PlatformFactory {
         }
 
     }
+
 
     private static Platform createRootPlatform() throws IOException {
         Path arduinoPlatformPath = ArduinoConfig.getInstance().getDefaultArduinoPlatformPath().get();

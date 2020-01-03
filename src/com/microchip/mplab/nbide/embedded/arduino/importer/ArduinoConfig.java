@@ -84,10 +84,22 @@ public abstract class ArduinoConfig {
         Path p = findArduinoBuilderPath(path);
         return Files.exists(p);
     }
-
+  
+    //new Version("0.0.0");
+    //new Version("00.000.0000");
+    private String getVersion(String version){
+        version = version.substring(9);
+        int index = 0;
+        for(int i = 0; i < 3; i++){
+            index  = version.indexOf('.', index + 1);
+        }
+        version = version.substring(0,index);
+        return version;
+    }
+    
     public Optional<Version> findCurrentVersion() {
         return findHighestArduinoVersionLine().map( 
-            line -> new Version( line.split("=")[0].substring(9, 14) ) 
+            line -> new Version( getVersion( line.split("=")[0] ) ) 
         );
     }    
     
@@ -107,7 +119,7 @@ public abstract class ArduinoConfig {
         
         for ( String line : hardwarePathLines ) {
             // e.g: last.ide.1.8.2.hardwarepath=...
-            Version v = new Version( line.substring(9, 14) );
+            Version v = new Version( getVersion( line ) );
             if ( v.compareTo(highestVersion) > 0 ) {
                 highestVersion = v;
                 highestVersionLine = line;
